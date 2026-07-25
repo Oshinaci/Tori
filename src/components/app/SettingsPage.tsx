@@ -22,6 +22,7 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage, LANGUAGES, LanguageCode } from "@/context/LanguageContext";
 import { PinVerificationModal } from "@/components/auth/PinVerificationModal";
+import { useActivity } from "@/context/ActivityContext";
 import { toast } from "sonner";
 
 function Toggle({ defaultOn }: { defaultOn?: boolean }) {
@@ -38,6 +39,7 @@ function Toggle({ defaultOn }: { defaultOn?: boolean }) {
 export function SettingsPage() {
   const { user, signOut, hasPin } = useAuth();
   const { language, setLanguageCode, t } = useLanguage();
+  const { logActivityAndNotification } = useActivity();
   const navigate = useNavigate();
 
   const [isLangOpen, setIsLangOpen] = useState(false);
@@ -237,6 +239,145 @@ export function SettingsPage() {
               </div>
             </li>
           </ul>
+        </section>
+
+        {/* Developer Testing Sandbox */}
+        <section>
+          <h2 className="px-2 text-xs font-medium uppercase tracking-wider text-muted-foreground text-brand">
+            Developer Testing Sandbox
+          </h2>
+          <div className="glass mt-2 p-4 rounded-3xl border border-white/10 space-y-3">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Tori supports Arbitrum One production wallet interactions. Click any action below to
+              instantly simulate wallet activities and view them live inside the **Activity &
+              Alerts** notifications.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  const hash =
+                    "0x" +
+                    Array.from({ length: 64 }, () =>
+                      Math.floor(Math.random() * 16).toString(16),
+                    ).join("");
+                  await logActivityAndNotification(
+                    "deposit",
+                    "transaction",
+                    "ETH Received",
+                    "You received 0.05 ETH successfully from 0x71C...8e9A on Arbitrum One",
+                    { tokenSymbol: "ETH", amount: "0.05", txHash: hash, icon: "ArrowDown" },
+                  );
+                  toast.success("Simulated ETH Deposit Logged!");
+                }}
+                className="rounded-2xl border border-white/5 bg-white/5 p-2.5 text-center text-[11px] font-bold text-emerald-400 hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                Simulate Deposit
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const hash =
+                    "0x" +
+                    Array.from({ length: 64 }, () =>
+                      Math.floor(Math.random() * 16).toString(16),
+                    ).join("");
+                  await logActivityAndNotification(
+                    "withdraw",
+                    "transaction",
+                    "ETH Sent",
+                    "Sent 0.02 ETH successfully to 0x3f5...A812",
+                    { tokenSymbol: "ETH", amount: "0.02", txHash: hash, icon: "ArrowUp" },
+                  );
+                  toast.success("Simulated ETH Withdrawal Logged!");
+                }}
+                className="rounded-2xl border border-white/5 bg-white/5 p-2.5 text-center text-[11px] font-bold text-amber-400 hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                Simulate Withdraw
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const hash =
+                    "0x" +
+                    Array.from({ length: 64 }, () =>
+                      Math.floor(Math.random() * 16).toString(16),
+                    ).join("");
+                  await logActivityAndNotification(
+                    "swap",
+                    "transaction",
+                    "Token Swapped",
+                    "Swapped 0.01 ETH for 12.5 ARB",
+                    {
+                      tokenSymbol: "ARB",
+                      amount: "12.5",
+                      txHash: hash,
+                      icon: "Repeat",
+                      metadata: { swappedFrom: "ETH", fromAmount: "0.01" },
+                    },
+                  );
+                  toast.success("Simulated Token Swap Logged!");
+                }}
+                className="rounded-2xl border border-white/5 bg-white/5 p-2.5 text-center text-[11px] font-bold text-blue-400 hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                Simulate Swap
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const hash =
+                    "0x" +
+                    Array.from({ length: 64 }, () =>
+                      Math.floor(Math.random() * 16).toString(16),
+                    ).join("");
+                  await logActivityAndNotification(
+                    "bridge",
+                    "transaction",
+                    "Bridge Completed",
+                    "Bridged 0.03 ETH from Arbitrum One to Arbitrum Nova",
+                    {
+                      tokenSymbol: "ETH",
+                      amount: "0.03",
+                      txHash: hash,
+                      icon: "ArrowRight",
+                      metadata: { fromChain: "Arbitrum One", toChain: "Arbitrum Nova" },
+                    },
+                  );
+                  toast.success("Simulated Bridge Logged!");
+                }}
+                className="rounded-2xl border border-white/5 bg-white/5 p-2.5 text-center text-[11px] font-bold text-purple-400 hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                Simulate Bridge
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                const hash =
+                  "0x" +
+                  Array.from({ length: 64 }, () =>
+                    Math.floor(Math.random() * 16).toString(16),
+                  ).join("");
+                await logActivityAndNotification(
+                  "buy",
+                  "transaction",
+                  "Crypto Purchase",
+                  "Purchased 0.04 ETH ($100.00 USD) via GoPay",
+                  {
+                    tokenSymbol: "ETH",
+                    amount: "0.04",
+                    txHash: hash,
+                    icon: "CreditCard",
+                    metadata: { fiatMethod: "GoPay", fiatAmount: "100.00" },
+                  },
+                );
+                toast.success("Simulated Crypto Purchase Logged!");
+              }}
+              className="w-full rounded-2xl border border-brand/20 bg-brand/10 p-2.5 text-center text-[11px] font-bold text-brand hover:bg-brand/20 transition-colors cursor-pointer"
+            >
+              Simulate Purchase (GoPay)
+            </button>
+          </div>
         </section>
 
         {/* Sign Out Button */}

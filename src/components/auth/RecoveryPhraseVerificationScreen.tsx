@@ -6,6 +6,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { walletService } from "@/lib/wallet-service";
+import { logActivityAndNotificationDirect } from "@/lib/activity-logger";
 
 export function RecoveryPhraseVerificationScreen() {
   const navigate = useNavigate();
@@ -94,6 +95,15 @@ export function RecoveryPhraseVerificationScreen() {
         userId,
         "RECOVERY_PHRASE_VERIFIED",
         "Recovery phrase verified successfully",
+      );
+
+      // Log backup_completed activity and notification
+      await logActivityAndNotificationDirect(
+        userId,
+        "backup_completed",
+        "system",
+        "Seed Phrase Backed Up",
+        "Your 12-word master recovery phrase was successfully backed up and verified.",
       );
 
       // Persist onboarding completed flag to prevent returning here

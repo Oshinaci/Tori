@@ -5,6 +5,7 @@ import { AuthLayout } from "./AuthLayout";
 import { AuthLoading } from "./AuthLoading";
 import { useAuth } from "@/context/AuthContext";
 import { walletService } from "@/lib/wallet-service";
+import { logActivityAndNotificationDirect } from "@/lib/activity-logger";
 import { toast } from "sonner";
 
 interface CreatePinScreenProps {
@@ -103,7 +104,27 @@ export function CreatePinScreen({ onSuccess }: CreatePinScreenProps) {
         // Initialize HD Wallet Foundation
         const userId = user?.id || "guest_user";
         try {
-          const { isNew } = await walletService.getOrCreateWallet(userId);
+          const { isNew, wallet } = await walletService.getOrCreateWallet(userId);
+
+          // Log PIN and Wallet creations
+          await logActivityAndNotificationDirect(
+            userId,
+            "security",
+            "system",
+            "Security PIN Set",
+            "Your 6-digit security PIN has been successfully set up and encrypted.",
+          );
+
+          if (isNew && wallet) {
+            await logActivityAndNotificationDirect(
+              userId,
+              "wallet_created",
+              "system",
+              "Wallet Created",
+              `New Arbitrum One wallet successfully initialized: ${wallet.wallet_address.slice(0, 6)}...${wallet.wallet_address.slice(-4)}`,
+            );
+          }
+
           setLoading(false);
           setIsDone(true);
           toast.success("Security PIN & HD Wallet created successfully!");

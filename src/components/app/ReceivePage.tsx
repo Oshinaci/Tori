@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useWallet } from "@/context/WalletContext";
 import { toast } from "sonner";
@@ -10,7 +10,11 @@ export function ReceivePage() {
   const { walletAddress, loading } = useWallet();
   const [copied, setCopied] = useState(false);
 
-  const addressToDisplay = walletAddress || "0x0000000000000000000000000000000000000000";
+  // Robust Ethereum/Arbitrum address validation (0x followed by exactly 40 hex chars)
+  const isValidAddress = (addr: string | null | undefined): boolean => {
+    if (!addr) return false;
+    return /^0x[a-fA-F0-9]{40}$/.test(addr);
+  };
 
   // Exact middle truncation format matching: 0x1234...ABCD
   const truncateAddress = (addr: string) => {
@@ -19,7 +23,7 @@ export function ReceivePage() {
   };
 
   const copyAddr = async () => {
-    if (!walletAddress) return;
+    if (!walletAddress || !isValidAddress(walletAddress)) return;
     try {
       await navigator.clipboard.writeText(walletAddress);
       setCopied(true);
@@ -30,6 +34,101 @@ export function ReceivePage() {
     }
   };
 
+  // Performance: Avoid unnecessary QR Code regeneration. Memoize the QR Code when the wallet address has not changed.
+  const memoizedQRCode = useMemo(() => {
+    if (!isValidAddress(walletAddress)) return null;
+    return (
+      <QRCodeSVG
+        value={walletAddress!}
+        size={192}
+        level="H"
+        includeMargin={false}
+        fgColor="#09090A"
+        bgColor="#FFFFFF"
+      />
+    );
+  }, [walletAddress]);
+
+  // Loading Skeleton State
+  if (loading) {
+    return (
+      <div className="flex h-full flex-col pb-6 bg-[#09090A] text-white animate-pulse">
+        {/* Top App Bar Header */}
+        <header className="flex items-center justify-between px-4 py-4 border-b border-white/5 bg-[#09090A]">
+          <button
+            disabled
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-white/30"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back</span>
+          </button>
+          <div className="h-4 w-20 bg-white/10 rounded" />
+          <div className="w-16" />
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+          {/* Network Card Skeleton */}
+          <div className="h-16 rounded-2xl border border-white/5 bg-white/[0.01]" />
+
+          {/* QR Code Container Skeleton */}
+          <div className="flex justify-center">
+            <div className="h-60 w-60 rounded-[32px] bg-white/5" />
+          </div>
+
+          {/* Wallet Address Row Skeleton */}
+          <div className="h-16 rounded-2xl border border-white/5 bg-white/[0.01]" />
+
+          {/* Warning Card Skeleton */}
+          <div className="h-20 rounded-2xl border border-white/5 bg-white/[0.01]" />
+        </div>
+
+        {/* Action Button Skeleton */}
+        <div className="px-4 pt-2">
+          <div className="h-12 w-full rounded-2xl bg-white/5" />
+        </div>
+      </div>
+    );
+  }
+
+  // Error State: If the wallet address is missing or invalid
+  if (!isValidAddress(walletAddress)) {
+    return (
+      <div className="flex h-full flex-col pb-6 bg-[#09090A] text-white">
+        {/* Top App Bar Header */}
+        <header className="flex items-center justify-between px-4 py-4 border-b border-white/5 bg-[#09090A]">
+          <button
+            onClick={() => navigate({ to: "/app" })}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back</span>
+          </button>
+          <h1 className="text-sm font-bold tracking-wider text-white uppercase">Receive</h1>
+          <div className="w-16" />
+        </header>
+
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center space-y-6">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 text-red-500">
+            <AlertTriangle className="h-8 w-8" />
+          </div>
+          <div className="space-y-2 max-w-xs">
+            <h2 className="text-lg font-bold text-white tracking-wide">Wallet unavailable</h2>
+            <p className="text-sm text-white/60 leading-relaxed">
+              Unable to load your wallet address. Please try again.
+            </p>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="rounded-xl bg-white/10 px-6 py-2.5 text-xs font-bold text-white hover:bg-white/20 transition-colors border border-white/10 active:scale-95"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Guaranteed valid wallet address state
   return (
     <div className="flex h-full flex-col pb-6 bg-[#09090A] text-white">
       {/* Top App Bar Header */}
@@ -81,14 +180,7 @@ export function ReceivePage() {
         {/* QR Code Container (Centered, Large, Rounded White Card) */}
         <div className="flex flex-col items-center justify-center">
           <div className="mx-auto flex h-60 w-60 items-center justify-center rounded-[32px] bg-white p-6 shadow-premium transition-transform duration-300 hover:scale-[1.01]">
-            <QRCodeSVG
-              value={addressToDisplay}
-              size={192}
-              level="H"
-              includeMargin={false}
-              fgColor="#09090A"
-              bgColor="#FFFFFF"
-            />
+            {memoizedQRCode}
           </div>
         </div>
 
@@ -99,14 +191,13 @@ export function ReceivePage() {
               Main Wallet
             </span>
             <span className="font-mono text-xs font-bold text-white mt-1.5 leading-none tracking-wide">
-              {loading ? "Loading..." : truncateAddress(addressToDisplay)}
+              {truncateAddress(walletAddress!)}
             </span>
           </div>
 
           <button
             onClick={copyAddr}
-            disabled={loading || !walletAddress}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white transition-all active:scale-95 disabled:opacity-50"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white transition-all active:scale-95"
             title="Copy Wallet Address"
           >
             {copied ? (
@@ -182,8 +273,7 @@ export function ReceivePage() {
       <div className="px-4 pt-2">
         <button
           onClick={copyAddr}
-          disabled={loading || !walletAddress}
-          className="gradient-brand flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-xs font-bold text-white shadow-premium shadow-glow transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-50"
+          className="gradient-brand flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-xs font-bold text-white shadow-premium shadow-glow transition-all hover:opacity-95 active:scale-[0.99]"
         >
           <Copy className="h-4 w-4" />
           <span>Copy Address</span>

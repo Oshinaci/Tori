@@ -20,14 +20,17 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useWallet } from "@/context/WalletContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useActivity } from "@/context/ActivityContext";
 import { shortAddr, fmtUsd } from "./data";
 import { NotificationsSheet } from "./NotificationsSheet";
+import { TxList } from "./TxList";
 import { toast } from "sonner";
 
 export function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { unreadCount } = useActivity();
   const {
     walletAddress,
     walletName,
@@ -110,10 +113,14 @@ export function Dashboard() {
           type="button"
           onClick={() => setNotifOpen(true)}
           aria-label="Notifications"
-          className="relative grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+          className="relative grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
         >
           <Bell className="h-4 w-4 text-white" />
-          <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-background animate-pulse" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white ring-2 ring-background">
+              {unreadCount}
+            </span>
+          )}
         </button>
       </header>
 
@@ -369,17 +376,16 @@ export function Dashboard() {
           <h2 className="text-base font-bold text-white">
             {t("recentActivity", "Recent Activity")}
           </h2>
-          <button className="flex items-center gap-1 text-xs font-semibold text-brand hover:text-brand/80 transition-colors">
+          <button
+            onClick={() => setNotifOpen(true)}
+            className="flex items-center gap-1 text-xs font-semibold text-brand hover:text-brand/80 transition-colors cursor-pointer"
+          >
             {t("seeAll", "View All")}
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
 
-        <div className="flex flex-col items-center justify-center py-8 rounded-3xl border border-white/5 bg-white/[0.02]">
-          <p className="text-sm font-medium text-muted-foreground">
-            {t("noTransactions", "No transactions yet.")}
-          </p>
-        </div>
+        <TxList limit={3} />
       </section>
 
       <NotificationsSheet open={notifOpen} onOpenChange={setNotifOpen} />

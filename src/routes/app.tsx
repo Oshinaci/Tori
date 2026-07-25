@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app/AppShell";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 import { WalletProvider } from "@/context/WalletContext";
+import { ActivityProvider } from "@/context/ActivityContext";
 
 export const Route = createFileRoute("/app")({
   head: () => ({
@@ -22,9 +23,11 @@ function AppLayout() {
   return (
     <ProtectedRoute>
       <WalletProvider>
-        <AppShell>
-          <Outlet />
-        </AppShell>
+        <ActivityProvider>
+          <AppShell>
+            <Outlet />
+          </AppShell>
+        </ActivityProvider>
       </WalletProvider>
     </ProtectedRoute>
   );
