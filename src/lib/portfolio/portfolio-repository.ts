@@ -1,5 +1,4 @@
-import { blockchainService } from "@/lib/wallet/blockchain";
-import { priceService } from "@/lib/price-service";
+import { tokenService } from "@/lib/tokenService";
 import { PortfolioBalance } from "./types";
 
 export interface IPortfolioRepository {
@@ -11,41 +10,26 @@ export class PortfolioRepository implements IPortfolioRepository {
     if (!walletAddress) return [];
 
     try {
-      const ethResult = await blockchainService.getBalance(walletAddress);
-      const balanceNum = parseFloat(ethResult.formatted) || 0;
+      const balances = await tokenService.getTokenBalances(walletAddress);
 
-      let fiatPrice = 3400;
-      let priceChange24h = 0;
-      try {
-        const livePrice = await priceService.getETHPrice();
-        fiatPrice = livePrice.price;
-        priceChange24h = livePrice.change24h;
-      } catch (err) {
-        console.warn("Failed to fetch live ETH price, using fallback:", err);
-      }
-
-      const fiatValue = balanceNum * fiatPrice;
-
-      return [
-        {
-          asset: {
-            id: "ethereum",
-            networkId: "arbitrum",
-            contractAddress: null,
-            symbol: "ETH",
-            name: "Ethereum",
-            decimals: 18,
-            logoUrl: "https://cryptologos.cc/logos/ethereum-eth-logo.png",
-            color: "#627EEA",
-          },
-          balanceRaw: ethResult.rawWei,
-          balanceFormatted: ethResult.formatted,
-          balanceNum: balanceNum,
-          fiatPrice,
-          fiatValue,
-          priceChange24h,
+      return balances.map((b) => ({
+        asset: {
+          id: b.metadata.id,
+          networkId: "arbitrum",
+          contractAddress: b.metadata.contractAddress,
+          symbol: b.metadata.symbol,
+          name: b.metadata.name,
+          decimals: b.metadata.decimals,
+          logoUrl: b.metadata.logoUrl,
+          color: b.metadata.color,
         },
-      ];
+        balanceRaw: b.balanceRaw,
+        balanceFormatted: b.balanceFormatted,
+        balanceNum: b.balanceNum,
+        fiatPrice: b.fiatPrice,
+        fiatValue: b.fiatValue,
+        priceChange24h: b.priceChange24h,
+      }));
     } catch (err) {
       console.error("PortfolioRepository.getBalances error:", err);
       return [];

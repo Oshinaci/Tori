@@ -5,13 +5,20 @@ import { AssetList } from "./AssetList";
 import { portfolioService, PortfolioSummary } from "@/lib/portfolio";
 import { useWallet } from "@/context/WalletContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Search, RefreshCw } from "lucide-react";
 
 export function PortfolioPage() {
-  const { walletAddress, loading: walletLoading } = useWallet();
+  const {
+    walletAddress,
+    loading: walletLoading,
+    isRefetching,
+    refetchBalance,
+    tokenBalances,
+  } = useWallet();
   const { t } = useLanguage();
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Persist hidden state in localStorage
   const [hidden, setHidden] = useState(() => {
@@ -29,28 +36,29 @@ export function PortfolioPage() {
     if (walletLoading) return;
     let isMounted = true;
     async function loadPortfolio() {
-      setLoading(true);
+      // Only show full loading skeleton on initial fetch
+      if (!summary) {
+        setLoading(true);
+      }
 
       if (walletAddress) {
         const data = await portfolioService.getPortfolio(walletAddress);
         if (isMounted) {
           setSummary(data);
+          setLoading(false);
         }
       } else {
         if (isMounted) {
           setSummary(await portfolioService.getPortfolio(null));
+          setLoading(false);
         }
-      }
-
-      if (isMounted) {
-        setLoading(false);
       }
     }
     loadPortfolio();
     return () => {
       isMounted = false;
     };
-  }, [walletAddress, walletLoading]);
+  }, [walletAddress, walletLoading, tokenBalances]);
 
   const positive = summary ? summary.totalChange24h >= 0 : true;
 
@@ -64,6 +72,14 @@ export function PortfolioPage() {
         pct: totalFiat > 0 ? (b.fiatValue / totalFiat) * 100 : 0,
       }))
       .sort((a, b) => b.pct - a.pct) || [];
+
+  // Filter balances based on search query
+  const filteredBalances =
+    summary?.balances.filter(
+      (b) =>
+        b.asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        b.asset.symbol.toLowerCase().includes(searchQuery.toLowerCase()),
+    ) || [];
 
   return (
     <div className="flex h-full flex-col pb-20">
@@ -101,22 +117,26 @@ export function PortfolioPage() {
             ) : hidden ? (
               "••••••"
             ) : (
-              new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-                summary?.totalFiatValue || 0,
-              )
+              new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: "USD",
+              }).format(summary?.totalFiatValue || 0)
             )}
           </div>
 
           <div className="mt-2 flex items-center gap-2">
-            <p className="text-xs text-muted-foreground">{t("todaysChange", "Today's Change")}</p>
+            <p className="text-xs text-muted-foreground font-medium">
+              {t("todaysChange", "Today's Change")}
+            </p>
             {!loading && !hidden && (
               <p
                 className={`text-xs font-semibold ${positive ? "text-emerald-400" : "text-red-400"}`}
               >
                 {positive ? "+" : ""}
-                {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-                  summary?.totalChange24h || 0,
-                )}{" "}
+                {new Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency: "USD",
+                }).format(summary?.totalChange24h || 0)}{" "}
                 ({summary?.totalChange24hPct.toFixed(2) || "0.00"}%)
               </p>
             )}
@@ -149,13 +169,51 @@ export function PortfolioPage() {
           )}
         </motion.section>
 
-        <h2 className="mt-8 text-base font-bold text-white px-1">{t("assets", "All Assets")}</h2>
+        <div className="mt-8 flex items-center justify-between px-1">
+          <h2 className="text-base font-bold text-white">{t("assets", "All Assets")}</h2>
+          <button
+            onClick={refetchBalance}
+            disabled={isRefetching}
+            className="flex items-center gap-1 text-xs font-semibold text-brand hover:text-brand/80 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3 w-3 ${isRefetching ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="mt-3 px-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search assets by name or symbol..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-2xl bg-white/5 border border-white/10 pl-9 pr-4 py-2 text-sm text-white placeholder-muted-foreground focus:outline-none focus:border-brand/50 focus:bg-white/[0.08] transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-2.5 text-xs text-muted-foreground hover:text-white"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+
         {loading ? (
-          <div className="flex justify-center p-8">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+          <div className="mt-4 space-y-2">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-16 w-full animate-pulse rounded-3xl border border-white/5 bg-white/[0.02]"
+              />
+            ))}
           </div>
         ) : (
-          <AssetList balances={summary?.balances || []} />
+          <AssetList balances={filteredBalances} />
         )}
       </div>
     </div>

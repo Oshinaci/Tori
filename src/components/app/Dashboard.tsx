@@ -37,6 +37,7 @@ export function Dashboard() {
     loading,
     network,
     ethBalance,
+    tokenBalances,
     lastSyncedAt,
     rpcStatus,
     isRefetching,
@@ -331,42 +332,74 @@ export function Dashboard() {
           </button>
         </div>
 
-        {/* Live Native ETH Asset Item */}
+        {/* Live Discovered Asset Items */}
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/[0.08] transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-full bg-[#627EEA]/20 text-[#627EEA] font-bold">
-                <svg className="h-5 w-5 fill-current" viewBox="0 0 256 417">
-                  <path
-                    d="M127.961 0l-2.795 9.5v275.668l2.795 2.79 127.962-75.638z"
-                    fill="#627EEA"
-                  />
-                  <path d="M127.962 0L0 212.32l127.962 75.639V154.158z" fill="#8A92B2" />
-                  <path
-                    d="M127.961 312.187l-1.575 1.92v98.199l1.575 4.601 128.038-180.32z"
-                    fill="#627EEA"
-                  />
-                  <path d="M127.962 416.905v-104.72L0 236.585z" fill="#8A92B2" />
-                </svg>
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-bold text-white">Ethereum</span>
-                  <span className="text-[10px] font-medium bg-brand/20 text-brand px-1.5 py-0.2 rounded">
-                    Arbitrum
-                  </span>
-                </div>
-                <span className="text-xs text-muted-foreground">ETH</span>
-              </div>
-            </div>
+          {tokenBalances && tokenBalances.length > 0 ? (
+            [...tokenBalances]
+              .sort((a, b) => b.fiatValue - a.fiatValue)
+              .map((b) => {
+                const isZero = b.balanceNum === 0;
+                const formattedBalance = isZero
+                  ? `0 ${b.metadata.symbol}`
+                  : `${b.balanceNum.toFixed(6).replace(/\.?0+$/, "")} ${b.metadata.symbol}`;
 
-            <div className="flex flex-col items-end">
-              <span className="text-sm font-bold text-white">
-                {hidden ? "••••••" : ethDisplayValue}
-              </span>
-              <span className="text-xs text-muted-foreground">Native Token</span>
+                return (
+                  <div
+                    key={b.metadata.id}
+                    className="flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/[0.08] transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="grid h-10 w-10 place-items-center rounded-full bg-white/5 border border-white/10 p-1.5 overflow-hidden shrink-0">
+                        {b.metadata.logoUrl ? (
+                          <img
+                            src={b.metadata.logoUrl}
+                            alt={b.metadata.name}
+                            className="h-full w-full object-contain"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div
+                            className="h-full w-full rounded-full flex items-center justify-center font-bold text-xs"
+                            style={{ backgroundColor: b.metadata.color, color: "#fff" }}
+                          >
+                            {b.metadata.symbol.substring(0, 2)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-bold text-white">{b.metadata.name}</span>
+                          {b.metadata.contractAddress === null && (
+                            <span className="text-[9px] font-bold bg-white/10 text-white/70 px-1.5 py-0.2 rounded uppercase">
+                              Native
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground">{b.metadata.symbol}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end">
+                      <span className="text-sm font-bold text-white">
+                        {hidden ? "••••••" : formattedBalance}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {hidden ? "••••••" : fmtUsd(b.fiatValue)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+          ) : (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-16 w-full animate-pulse rounded-2xl border border-white/5 bg-white/[0.02]"
+                />
+              ))}
             </div>
-          </div>
+          )}
         </div>
       </section>
 

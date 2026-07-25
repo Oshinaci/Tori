@@ -291,11 +291,12 @@ export function ReceivePage() {
           <div className="flex items-center gap-2 text-amber-400">
             <AlertTriangle className="h-5 w-5 shrink-0" />
             <span className="text-[10px] font-bold uppercase tracking-wider">
-              Only send assets on Arbitrum One.
+              This wallet supports ERC-20 assets on Arbitrum One.
             </span>
           </div>
           <p className="text-xs leading-relaxed text-amber-200/80">
-            Sending assets from unsupported networks may permanently result in loss of funds.
+            Sending assets from unsupported networks may permanently result in loss of funds. Make
+            sure the assets are sent over the Arbitrum One network (Chain ID: 42161).
           </p>
         </div>
 

@@ -1,9 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "./AuthContext";
 import { walletService } from "@/lib/wallet-service";
-import { blockchainService } from "@/lib/wallet/blockchain";
 import { ARBITRUM_ONE } from "@/lib/wallet/network";
-import { calculatePortfolioValue } from "@/lib/portfolio";
+import { tokenService, TokenBalance } from "@/lib/tokenService";
 
 export type RpcStatus = "connected" | "connecting" | "unavailable";
 
@@ -23,6 +22,7 @@ interface WalletContextType {
   loading: boolean;
   ethBalance: string | null;
   ethBalanceWei: string | null;
+  tokenBalances: TokenBalance[];
   lastSyncedAt: Date | null;
   rpcStatus: RpcStatus;
   rpcErrorMessage: string | null;
@@ -52,6 +52,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   // Blockchain Live Data
   const [ethBalance, setEthBalance] = useState<string | null>("0");
   const [ethBalanceWei, setEthBalanceWei] = useState<string | null>(null);
+  const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([]);
   const [portfolioValue, setPortfolioValue] = useState<number>(0);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [rpcStatus, setRpcStatus] = useState<RpcStatus>("connecting");
@@ -60,7 +61,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   const isFetchingRef = useRef(false);
 
-  // Fetch balance function
+  // Fetch balance function for all supported ERC20 tokens
   const fetchBalance = useCallback(async (address: string) => {
     if (!address || isFetchingRef.current) return;
     isFetchingRef.current = true;
@@ -68,16 +69,25 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
     try {
       setRpcStatus((prev) => (prev === "unavailable" ? "connecting" : prev));
-      const result = await blockchainService.getBalance(address);
-      setEthBalance(result.formatted);
-      setEthBalanceWei(result.rawWei);
-      setLastSyncedAt(new Date(result.lastUpdated));
+
+      // Retrieve live balances for all tokens in parallel
+      const allBalances = await tokenService.getTokenBalances(address);
+      setTokenBalances(allBalances);
+
+      // Extract native ETH balance
+      const ethBal = allBalances.find((b) => b.metadata.id === "ethereum");
+      if (ethBal) {
+        setEthBalance(ethBal.balanceFormatted);
+        setEthBalanceWei(ethBal.balanceRaw);
+      }
+
+      setLastSyncedAt(new Date());
       setRpcStatus("connected");
       setRpcErrorMessage(null);
 
-      // Calculate automated portfolio value
-      const val = await calculatePortfolioValue(address);
-      setPortfolioValue(val);
+      // Sum portfolio value from all assets automatically
+      const totalVal = allBalances.reduce((sum, b) => sum + b.fiatValue, 0);
+      setPortfolioValue(totalVal);
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : "Network unavailable";
       console.warn("Wallet Context RPC Balance Fetch Error:", errMsg);
@@ -113,6 +123,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           setWalletName(null);
           setEthBalance("0");
           setEthBalanceWei(null);
+          setTokenBalances([]);
           setLastSyncedAt(null);
           setRpcStatus("connecting");
           setLoading(false);
@@ -164,6 +175,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         loading,
         ethBalance,
         ethBalanceWei,
+        tokenBalances,
         lastSyncedAt,
         rpcStatus,
         rpcErrorMessage,
