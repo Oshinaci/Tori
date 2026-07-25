@@ -1,14 +1,36 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Bird, Check, Copy, QrCode, ShieldCheck } from "lucide-react";
 import { TopBar } from "./TopBar";
-import { NETWORKS, WALLET_ADDRESS, shortAddr } from "./data";
+import { NETWORKS, WALLET_ADDRESS as DEFAULT_WALLET_ADDRESS, shortAddr } from "./data";
+import { useAuth } from "@/context/AuthContext";
+import { walletService } from "@/lib/wallet-service";
 
 export function WalletPage() {
+  const { user } = useAuth();
+  const [walletAddress, setWalletAddress] = useState<string>(DEFAULT_WALLET_ADDRESS);
+  const [walletName, setWalletName] = useState<string>("Main Wallet");
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchWallet() {
+      const userId = user?.id || "guest_user";
+      const w = await walletService.getWallet(userId);
+      if (isMounted && w) {
+        setWalletAddress(w.wallet_address);
+        setWalletName(w.wallet_name || "Main Wallet");
+      }
+    }
+    fetchWallet();
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(WALLET_ADDRESS);
+      await navigator.clipboard.writeText(walletAddress);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -29,7 +51,7 @@ export function WalletPage() {
         }}
       >
         <div className="flex items-center justify-between text-white/85">
-          <span className="text-xs uppercase tracking-wider">Main wallet</span>
+          <span className="text-xs uppercase tracking-wider">{walletName}</span>
           <ShieldCheck className="h-4 w-4" />
         </div>
 
@@ -44,7 +66,7 @@ export function WalletPage() {
             <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/20 text-white shadow-sm">
               <Bird className="h-4 w-4" strokeWidth={2.2} />
             </span>
-            <span className="truncate font-mono text-sm">{shortAddr(WALLET_ADDRESS)}</span>
+            <span className="truncate font-mono text-sm">{shortAddr(walletAddress)}</span>
           </div>
           <button
             type="button"

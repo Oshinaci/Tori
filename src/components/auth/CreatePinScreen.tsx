@@ -4,6 +4,7 @@ import { ShieldCheck, Delete, AlertCircle, RefreshCw, Lock } from "lucide-react"
 import { AuthLayout } from "./AuthLayout";
 import { AuthLoading } from "./AuthLoading";
 import { useAuth } from "@/context/AuthContext";
+import { walletService } from "@/lib/wallet-service";
 import { toast } from "sonner";
 
 interface CreatePinScreenProps {
@@ -11,7 +12,7 @@ interface CreatePinScreenProps {
 }
 
 export function CreatePinScreen({ onSuccess }: CreatePinScreenProps) {
-  const { createPin } = useAuth();
+  const { user, createPin } = useAuth();
   const navigate = useNavigate();
 
   const [step, setStep] = useState<"create" | "confirm">("create");
@@ -84,13 +85,13 @@ export function CreatePinScreen({ onSuccess }: CreatePinScreenProps) {
         return;
       }
 
-      // Hash & Store
+      // Hash & Store PIN and initialize HD Wallet foundation
       const submitPin = async () => {
         setLoading(true);
         const res = await createPin(confirmPin);
-        setLoading(false);
 
         if (!res.success) {
+          setLoading(false);
           setErrorMsg(res.error || "Failed to create PIN.");
           toast.error(res.error || "Failed to create PIN.");
           setConfirmPin("");
@@ -99,21 +100,34 @@ export function CreatePinScreen({ onSuccess }: CreatePinScreenProps) {
           return;
         }
 
-        setIsDone(true);
-        toast.success("Security PIN created successfully!");
+        // Initialize HD Wallet Foundation
+        const userId = user?.id || "guest_user";
+        try {
+          const { isNew } = await walletService.getOrCreateWallet(userId);
+          setLoading(false);
+          setIsDone(true);
+          toast.success("Security PIN & HD Wallet created successfully!");
 
-        setTimeout(() => {
-          if (onSuccess) {
-            onSuccess();
-          } else {
-            navigate({ to: "/app" });
-          }
-        }, 1200);
+          setTimeout(() => {
+            if (onSuccess) {
+              onSuccess();
+            } else if (isNew) {
+              navigate({ to: "/auth/recovery-phrase" });
+            } else {
+              navigate({ to: "/app" });
+            }
+          }, 1200);
+        } catch (err) {
+          console.error("Wallet initialization error:", err);
+          setLoading(false);
+          setErrorMsg("Failed to initialize wallet foundation.");
+          toast.error("Failed to initialize wallet foundation.");
+        }
       };
 
       submitPin();
     }
-  }, [confirmPin, firstPin, step, createPin, navigate, onSuccess]);
+  }, [confirmPin, firstPin, step, createPin, user, navigate, onSuccess]);
 
   if (isDone) {
     return <AuthLoading message="PIN encrypted & secured! Loading Tori Wallet..." />;
