@@ -43,7 +43,7 @@ export function RegisterScreen() {
 
     toast.success("Account created! Check your email for the 6-digit OTP code.");
     navigate({
-      to: "/verify-email",
+      to: "/auth/verify-email",
       search: { email: email.trim(), type: "signup" },
     });
   };

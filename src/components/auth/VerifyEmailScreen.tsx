@@ -6,15 +6,15 @@ import {
   ArrowRight,
   XCircle,
   RotateCcw,
-  CheckCircle2,
-  ShieldCheck,
   AlertCircle,
-  Sparkles,
+  ShieldCheck,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthLayout } from "./AuthLayout";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { handleSilentTokenVerification } from "@/lib/auth";
+import { AuthLoading } from "./AuthLoading";
 
 export function VerifyEmailScreen() {
   const searchParams = useSearch({ strict: false });
@@ -23,25 +23,62 @@ export function VerifyEmailScreen() {
   const authType =
     (searchParams as { email?: string; type?: "signup" | "recovery" }).type || "signup";
 
-  const { verifyOtp, resendOtp } = useAuth();
+  const { verifyOtp, resendOtp, user } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState(initialEmail);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
+  const [silentVerifying, setSilentVerifying] = useState(false);
   const [resending, setResending] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [isAlreadyVerified, setIsAlreadyVerified] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isExpired, setIsExpired] = useState(false);
-  const [attempts, setAttempts] = useState(0);
 
   // 60-second countdown for Resend OTP
   const [countdown, setCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
-  const [redirectTimer, setRedirectTimer] = useState(2);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Silent URL token/hash verification check on mount
+  useEffect(() => {
+    async function checkSilentToken() {
+      if (
+        typeof window === "undefined" ||
+        (!window.location.hash.includes("access_token") &&
+          !window.location.hash.includes("error") &&
+          !window.location.search.includes("code=") &&
+          !window.location.search.includes("token_hash="))
+      ) {
+        return;
+      }
+
+      setSilentVerifying(true);
+      const result = await handleSilentTokenVerification();
+
+      if (result.verified) {
+        setIsVerified(true);
+        toast.success("Email verified successfully.");
+        setTimeout(() => {
+          setSilentVerifying(false);
+          if (result.session || user) {
+            navigate({ to: "/app" });
+          } else {
+            navigate({ to: "/auth/login" });
+          }
+        }, 1200);
+      } else if (result.error) {
+        setSilentVerifying(false);
+        setErrorMessage("Invalid or expired verification code.");
+        toast.error("Invalid or expired verification code.");
+      } else {
+        setSilentVerifying(false);
+      }
+    }
+
+    checkSilentToken();
+  }, [navigate, user]);
 
   // Auto focus first input on mount
   useEffect(() => {
@@ -62,7 +99,7 @@ export function VerifyEmailScreen() {
         toast.info("This email address is already verified.");
         const t = setTimeout(() => {
           navigate({ to: "/auth/login" });
-        }, 1500);
+        }, 1200);
         return () => clearTimeout(t);
       }
     } catch {
@@ -87,34 +124,11 @@ export function VerifyEmailScreen() {
     return () => clearInterval(timer);
   }, [countdown, canResend]);
 
-  // Handle automatic redirect countdown after verification success
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isVerified) {
-      timer = setInterval(() => {
-        setRedirectTimer((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            if (authType === "recovery") {
-              navigate({ to: "/auth/reset-password", search: { email: email.trim() } });
-            } else {
-              navigate({ to: "/auth/login" });
-            }
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [isVerified, authType, email, navigate]);
-
   const handleOtpChange = (index: number, value: string) => {
     if (isVerified || loading) return;
 
     // Filter only numbers
     const cleanVal = value.replace(/\D/g, "");
-
     const newOtp = [...otp];
 
     // Handle paste of full 6-digit code or multi-digit input
@@ -132,7 +146,6 @@ export function VerifyEmailScreen() {
     newOtp[index] = cleanVal;
     setOtp(newOtp);
 
-    // Clear error state when user types
     if (errorMessage) setErrorMessage(null);
 
     // Auto focus next input
@@ -181,37 +194,33 @@ export function VerifyEmailScreen() {
         return;
       }
 
-      if (attempts >= 5) {
-        setErrorMessage("Too many failed attempts. Please click Resend Code for a new OTP.");
-        setIsExpired(true);
-        return;
-      }
-
       setLoading(true);
       setErrorMessage(null);
-      setIsExpired(false);
 
       const res = await verifyOtp(email.trim(), codeToVerify, authType);
 
-      setLoading(false);
-
       if (res.error) {
-        setAttempts((prev) => prev + 1);
-        if (res.error.toLowerCase().includes("expire")) {
-          setIsExpired(true);
-          setErrorMessage("This code has expired. Please request a new code.");
-        } else {
-          setErrorMessage("Invalid verification code. Please try again.");
-        }
-        toast.error(res.error.includes("Invalid") ? "Invalid verification code." : res.error);
+        setLoading(false);
+        setErrorMessage("Invalid or expired verification code.");
+        toast.error("Invalid or expired verification code.");
         return;
       }
 
-      // Success
+      // Success -> Show branding loading screen for 1 second, then redirect
       setIsVerified(true);
       toast.success("Email verified successfully.");
+      setTimeout(() => {
+        setLoading(false);
+        if (authType === "recovery") {
+          navigate({ to: "/auth/reset-password", search: { email: email.trim() } });
+        } else if (user) {
+          navigate({ to: "/app" });
+        } else {
+          navigate({ to: "/auth/login" });
+        }
+      }, 1000);
     },
-    [email, attempts, authType, verifyOtp],
+    [email, authType, verifyOtp, user, navigate],
   );
 
   const handleSubmit = (e?: React.FormEvent) => {
@@ -225,7 +234,6 @@ export function VerifyEmailScreen() {
 
     setResending(true);
     setErrorMessage(null);
-    setIsExpired(false);
 
     const res = await resendOtp(email.trim(), authType);
 
@@ -233,11 +241,10 @@ export function VerifyEmailScreen() {
 
     if (res.error) {
       toast.error(res.error);
-      setErrorMessage(res.error);
+      setErrorMessage("Invalid or expired verification code.");
     } else {
       setCanResend(false);
       setCountdown(60);
-      setAttempts(0);
       setOtp(["", "", "", "", "", ""]);
       toast.success("A new verification code has been sent.");
       setTimeout(() => {
@@ -245,6 +252,10 @@ export function VerifyEmailScreen() {
       }, 100);
     }
   };
+
+  if (silentVerifying || (isVerified && loading)) {
+    return <AuthLoading message="Verifying authentication code..." />;
+  }
 
   return (
     <AuthLayout
@@ -305,26 +316,6 @@ export function VerifyEmailScreen() {
           </motion.div>
         )}
 
-        {/* Success Banner */}
-        <AnimatePresence>
-          {isVerified && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="flex flex-col items-center justify-center space-y-2 rounded-2xl bg-emerald-500/15 p-5 text-center border border-emerald-500/30 text-emerald-300"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 ring-8 ring-emerald-500/10">
-                <CheckCircle2 className="h-6 w-6" />
-              </div>
-              <p className="text-sm font-bold text-emerald-200">Email verified successfully.</p>
-              <p className="text-xs text-emerald-300/80">
-                Redirecting to login in {redirectTimer} second{redirectTimer !== 1 ? "s" : ""}...
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Error Banner */}
         {!isVerified && errorMessage && (
           <motion.div
@@ -335,12 +326,10 @@ export function VerifyEmailScreen() {
             <XCircle className="h-4 w-4 shrink-0 text-red-400 mt-0.5" />
             <div className="flex-1 space-y-1">
               <p className="font-medium">{errorMessage}</p>
-              {isExpired && (
-                <p className="text-[11px] text-red-300/80">
-                  Please click <span className="font-semibold underline">Resend Code</span> below to
-                  get a fresh 6-digit OTP code.
-                </p>
-              )}
+              <p className="text-[11px] text-red-300/80">
+                Click <span className="font-semibold underline">Resend OTP</span> below to get a
+                fresh verification code.
+              </p>
             </div>
           </motion.div>
         )}
@@ -353,9 +342,6 @@ export function VerifyEmailScreen() {
                 <label className="text-xs font-semibold text-foreground">
                   6-Digit Verification Code
                 </label>
-                {attempts > 0 && (
-                  <span className="text-[11px] text-muted-foreground">Attempt {attempts}/5</span>
-                )}
               </div>
 
               {/* 6 OTP Input Boxes */}
@@ -388,7 +374,7 @@ export function VerifyEmailScreen() {
             {/* Verify Button */}
             <button
               type="submit"
-              disabled={!isCodeComplete || loading || isVerified || attempts >= 5}
+              disabled={!isCodeComplete || loading || isVerified}
               className="gradient-brand relative flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-xs font-bold text-white shadow-premium transition-all hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
@@ -424,7 +410,7 @@ export function VerifyEmailScreen() {
                 ) : (
                   <>
                     <RotateCcw className="h-3 w-3" />
-                    <span>{canResend ? "Resend Code" : `Resend in ${countdown}s`}</span>
+                    <span>{canResend ? "Resend OTP" : `Resend in ${countdown}s`}</span>
                   </>
                 )}
               </button>

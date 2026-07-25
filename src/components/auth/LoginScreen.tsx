@@ -60,7 +60,7 @@ export function LoginScreen() {
             {isUnverified && (
               <div className="pt-2 border-t border-red-500/20 flex justify-end">
                 <Link
-                  to="/verify-email"
+                  to="/auth/verify-email"
                   search={{ email: email.trim(), type: "signup" }}
                   className="inline-flex items-center gap-1 rounded-xl bg-red-500/20 px-3 py-1.5 text-xs font-semibold text-red-200 hover:bg-red-500/30"
                 >

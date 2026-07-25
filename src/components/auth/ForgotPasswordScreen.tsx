@@ -32,7 +32,7 @@ export function ForgotPasswordScreen() {
 
     toast.success("Verification code sent! Please check your email.");
     navigate({
-      to: "/verify-email",
+      to: "/auth/verify-email",
       search: { email: email.trim(), type: "recovery" },
     });
   };

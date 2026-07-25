@@ -68,7 +68,7 @@ export const authService = {
         email,
         password,
         options: {
-          emailRedirectTo: origin,
+          emailRedirectTo: `${origin}/verify-email`,
         },
       });
 
@@ -116,14 +116,27 @@ export const authService = {
     type: "signup" | "recovery" = "signup",
   ): Promise<AuthResponse<{ verified: boolean }>> {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase.auth.verifyOtp({
+      let { data, error } = await supabase.auth.verifyOtp({
         email,
         token,
         type: type === "signup" ? "signup" : "recovery",
       });
 
+      if (error && type === "signup") {
+        // Fallback retry with 'email' type if 'signup' type fails
+        const retry = await supabase.auth.verifyOtp({
+          email,
+          token,
+          type: "email",
+        });
+        if (!retry.error) {
+          data = retry.data;
+          error = null;
+        }
+      }
+
       if (error) {
-        return { data: null, error: error.message };
+        return { data: null, error: "Invalid or expired verification code." };
       }
 
       return { data: { verified: Boolean(data.session || data.user) }, error: null };
@@ -140,7 +153,7 @@ export const authService = {
       const userObj = users[uKey];
 
       if (token !== "123456" && userObj?.otp !== token) {
-        return { data: null, error: "Invalid 6-digit verification code. (Demo code is 123456)" };
+        return { data: null, error: "Invalid or expired verification code." };
       }
 
       if (type === "signup" && userObj) {
