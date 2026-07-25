@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   KeyRound,
@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Sparkles,
   Lock,
+  Download,
 } from "lucide-react";
 import { AuthLayout } from "./AuthLayout";
 import { AuthLoading } from "./AuthLoading";
@@ -17,19 +18,20 @@ import { useAuth } from "@/context/AuthContext";
 import { walletService } from "@/lib/wallet-service";
 import { toast } from "sonner";
 
-interface RecoveryPhraseScreenProps {
-  onSuccess?: () => void;
-}
-
-export function RecoveryPhraseScreen({ onSuccess }: RecoveryPhraseScreenProps) {
+export function RecoveryPhraseScreen() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const [mnemonic, setMnemonic] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRevealed, setIsRevealed] = useState(false);
+  const [hasRevealed, setHasRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [backedUpChecked, setBackedUpChecked] = useState(false);
+  const [holdProgress, setHoldProgress] = useState(0);
+
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -44,8 +46,35 @@ export function RecoveryPhraseScreen({ onSuccess }: RecoveryPhraseScreenProps) {
     loadPhrase();
     return () => {
       isMounted = false;
+      setMnemonic(null); // Clear sensitive state on unmount
     };
   }, [user]);
+
+  const handlePointerDown = () => {
+    setHoldProgress(0);
+    const duration = 2000;
+    const interval = 50;
+    let elapsed = 0;
+
+    progressTimerRef.current = setInterval(() => {
+      elapsed += interval;
+      setHoldProgress(Math.min((elapsed / duration) * 100, 100));
+    }, interval);
+
+    holdTimerRef.current = setTimeout(() => {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      setIsRevealed(true);
+      setHasRevealed(true);
+      setHoldProgress(0);
+      if (navigator.vibrate) navigator.vibrate(50);
+    }, duration);
+  };
+
+  const handlePointerUp = () => {
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    setHoldProgress(0);
+  };
 
   const handleCopy = () => {
     if (!mnemonic) return;
@@ -55,18 +84,31 @@ export function RecoveryPhraseScreen({ onSuccess }: RecoveryPhraseScreenProps) {
     setTimeout(() => setCopied(false), 3000);
   };
 
+  const handleDownload = () => {
+    if (!mnemonic) return;
+    const blob = new Blob([mnemonic], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "tori-recovery-phrase.txt";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Recovery phrase downloaded!");
+  };
+
   const handleComplete = () => {
+    if (!hasRevealed) {
+      toast.error("Please reveal your recovery phrase first.");
+      return;
+    }
     if (!backedUpChecked) {
       toast.error("Please confirm that you have saved your recovery phrase.");
       return;
     }
 
-    toast.success("Wallet backup confirmed! Welcome to Tori Wallet.");
-    if (onSuccess) {
-      onSuccess();
-    } else {
-      navigate({ to: "/app" });
-    }
+    navigate({ to: "/auth/recovery-phrase-verify" });
   };
 
   if (loading) {
@@ -74,6 +116,7 @@ export function RecoveryPhraseScreen({ onSuccess }: RecoveryPhraseScreenProps) {
   }
 
   const words = mnemonic ? mnemonic.split(" ") : [];
+  const canContinue = hasRevealed && backedUpChecked;
 
   return (
     <AuthLayout
@@ -87,7 +130,7 @@ export function RecoveryPhraseScreen({ onSuccess }: RecoveryPhraseScreenProps) {
           <div className="space-y-0.5">
             <span className="font-bold text-amber-300 block">Never share your phrase!</span>
             <p className="text-amber-200/80 leading-relaxed">
-              Anyone with these 12 words can access your assets. Store them securely offline.
+              Anyone with these 12 words can steal your assets. Tori can never recover your wallet.
             </p>
           </div>
         </div>
@@ -101,22 +144,32 @@ export function RecoveryPhraseScreen({ onSuccess }: RecoveryPhraseScreenProps) {
                 <Lock className="h-6 w-6" />
               </div>
               <p className="text-xs font-semibold text-white mb-1">Recovery Phrase Hidden</p>
-              <p className="text-[11px] text-muted-foreground mb-3 max-w-xs">
-                Ensure no one is looking at your screen before revealing.
+              <p className="text-[11px] text-muted-foreground mb-4 max-w-xs">
+                Ensure no one is looking at your screen. Press and hold to reveal.
               </p>
+
               <button
                 type="button"
-                onClick={() => setIsRevealed(true)}
-                className="flex items-center gap-1.5 rounded-xl gradient-brand px-4 py-2 text-xs font-bold text-white shadow-glow hover:opacity-95 transition-all"
+                onPointerDown={handlePointerDown}
+                onPointerUp={handlePointerUp}
+                onPointerLeave={handlePointerUp}
+                onContextMenu={(e) => e.preventDefault()}
+                className="relative flex select-none items-center gap-1.5 overflow-hidden rounded-xl bg-white/10 px-6 py-3 text-xs font-bold text-white transition-all hover:bg-white/20 active:scale-95"
               >
-                <Eye className="h-4 w-4" />
-                <span>Reveal Phrase</span>
+                <div
+                  className="absolute bottom-0 left-0 top-0 bg-brand/40 transition-all ease-linear"
+                  style={{ width: `${holdProgress}%` }}
+                />
+                <Eye className="relative z-10 h-4 w-4" />
+                <span className="relative z-10">Hold to Reveal</span>
               </button>
             </div>
           )}
 
           {/* 12-Word Grid */}
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+          <div
+            className={`grid grid-cols-2 gap-2.5 sm:grid-cols-3 ${!isRevealed ? "blur-md select-none" : ""}`}
+          >
             {words.map((word, idx) => (
               <div
                 key={idx}
@@ -135,7 +188,8 @@ export function RecoveryPhraseScreen({ onSuccess }: RecoveryPhraseScreenProps) {
             <button
               type="button"
               onClick={() => setIsRevealed(!isRevealed)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-white transition-colors"
+              disabled={!hasRevealed}
+              className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${hasRevealed ? "text-muted-foreground hover:text-white" : "text-muted-foreground/50 cursor-not-allowed"}`}
             >
               {isRevealed ? (
                 <>
@@ -144,39 +198,55 @@ export function RecoveryPhraseScreen({ onSuccess }: RecoveryPhraseScreenProps) {
                 </>
               ) : (
                 <>
-                  <Eye className="h-4 w-4 text-brand" />
-                  <span>Reveal Phrase</span>
+                  <Eye className="h-4 w-4" />
+                  <span>Show Phrase</span>
                 </>
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10 transition-all"
-            >
-              {copied ? (
-                <>
-                  <Check className="h-3.5 w-3.5 text-emerald-400" />
-                  <span className="text-emerald-400">Copied</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="h-3.5 w-3.5 text-brand" />
-                  <span>Copy Phrase</span>
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={!isRevealed}
+                className={`flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-1.5 text-xs font-semibold transition-all ${isRevealed ? "bg-white/5 text-white hover:bg-white/10" : "bg-transparent text-muted-foreground/50 cursor-not-allowed"}`}
+              >
+                <Download className={`h-3.5 w-3.5 ${isRevealed ? "text-brand" : ""}`} />
+                <span className="hidden sm:inline">Save TXT</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCopy}
+                disabled={!isRevealed}
+                className={`flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-1.5 text-xs font-semibold transition-all ${isRevealed ? "bg-white/5 text-white hover:bg-white/10" : "bg-transparent text-muted-foreground/50 cursor-not-allowed"}`}
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-3.5 w-3.5 text-emerald-400" />
+                    <span className="text-emerald-400">Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className={`h-3.5 w-3.5 ${isRevealed ? "text-brand" : ""}`} />
+                    <span>Copy</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Confirmation Checkbox */}
-        <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-white/10 bg-white/5 p-3 hover:bg-white/10 transition-colors">
+        <label
+          className={`flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3 transition-colors ${hasRevealed ? "cursor-pointer hover:bg-white/10" : "opacity-50 cursor-not-allowed"}`}
+        >
           <input
             type="checkbox"
             checked={backedUpChecked}
+            disabled={!hasRevealed}
             onChange={(e) => setBackedUpChecked(e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/30 text-brand focus:ring-brand accent-purple-600"
+            className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/30 text-brand focus:ring-brand accent-purple-600 disabled:cursor-not-allowed"
           />
           <span className="text-xs font-medium text-muted-foreground leading-snug">
             I have written down or backed up my 12-word recovery phrase in a safe offline location.
@@ -187,14 +257,14 @@ export function RecoveryPhraseScreen({ onSuccess }: RecoveryPhraseScreenProps) {
         <button
           type="button"
           onClick={handleComplete}
-          disabled={!backedUpChecked}
+          disabled={!canContinue}
           className={`flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold text-white transition-all shadow-premium ${
-            backedUpChecked
+            canContinue
               ? "gradient-brand shadow-glow hover:opacity-95"
               : "bg-white/10 text-muted-foreground cursor-not-allowed"
           }`}
         >
-          <span>Finish & Go to Dashboard</span>
+          <span>Continue</span>
           <ArrowRight className="h-4 w-4" />
         </button>
       </div>

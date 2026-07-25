@@ -346,4 +346,39 @@ export const walletService = {
       return null;
     }
   },
+
+  /**
+   * Log an activity for the user
+   */
+  async logActivity(userId: string, action: string, description: string): Promise<void> {
+    const now = new Date().toISOString();
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from("activity_logs").insert({
+          user_id: userId,
+          action,
+          description,
+          user_agent: typeof navigator !== "undefined" ? navigator.userAgent : "Browser",
+        });
+      } catch (err) {
+        console.error("Failed to log activity:", err);
+      }
+    }
+    if (typeof window !== "undefined") {
+      try {
+        const localLogs = JSON.parse(localStorage.getItem(LOCAL_LOGS_KEY) || "[]");
+        localLogs.unshift({
+          id: crypto.randomUUID(),
+          user_id: userId,
+          action,
+          description,
+          user_agent: typeof navigator !== "undefined" ? navigator.userAgent : "Browser",
+          created_at: now,
+        });
+        localStorage.setItem(LOCAL_LOGS_KEY, JSON.stringify(localLogs.slice(0, 50)));
+      } catch (e) {
+        // ignore
+      }
+    }
+  },
 };

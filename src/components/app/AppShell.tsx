@@ -8,7 +8,7 @@ const NAV = [
   { to: "/app", label: "Home", icon: Home, exact: true, isTrade: false },
   { to: "/app/portfolio", label: "Portfolio", icon: PieChart, exact: false, isTrade: false },
   { to: "/app", label: "Trade", icon: Repeat, exact: false, isTrade: true, badge: "soon" },
-  { to: "/app/wallet", label: "Wallet", icon: Wallet, exact: false, isTrade: false },
+  { to: "/app/activity", label: "Activity", icon: Wallet, exact: false, isTrade: false },
   { to: "/app/settings", label: "Settings", icon: Settings, exact: false, isTrade: false },
 ] as const;
 
