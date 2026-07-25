@@ -35,6 +35,7 @@ export interface AuthContextType {
   ) => Promise<AuthResponse<{ updated: boolean }>>;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
+  checkEmailExists: (email: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -150,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resetPassword: authService.resetPassword,
         signOut: handleSignOut,
         refreshSession,
+        checkEmailExists: authService.checkEmailExists,
       }}
     >
       {children}

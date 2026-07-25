@@ -26,6 +26,28 @@ export interface DemoSession {
 
 export const authService = {
   /**
+   * Check if an email exists
+   */
+  async checkEmailExists(email: string): Promise<boolean> {
+    const cleanEmail = email.trim().toLowerCase();
+    if (isSupabaseConfigured) {
+      // In Supabase, you can't check email existence directly without a secure RPC.
+      // But we can attempt signInWithOtp or rely on signin errors.
+      // For this mockup, we'll return false and let the regular signin/signup handle it,
+      // or assume we only use demo storage for existence validation.
+      return false;
+    } else {
+      if (typeof window !== "undefined") {
+        const users = JSON.parse(localStorage.getItem("tori_demo_users") || "{}");
+        if (users[cleanEmail] || cleanEmail === "demo@tori.wallet") {
+          return true;
+        }
+      }
+      return false;
+    }
+  },
+
+  /**
    * Get the current active session
    */
   async getSession(): Promise<{

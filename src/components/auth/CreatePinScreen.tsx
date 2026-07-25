@@ -109,10 +109,10 @@ export function CreatePinScreen({ onSuccess }: CreatePinScreenProps) {
           toast.success("Security PIN & HD Wallet created successfully!");
 
           setTimeout(() => {
-            if (onSuccess) {
-              onSuccess();
-            } else if (isNew) {
+            if (isNew) {
               navigate({ to: "/auth/recovery-phrase" });
+            } else if (onSuccess) {
+              onSuccess();
             } else {
               navigate({ to: "/app" });
             }

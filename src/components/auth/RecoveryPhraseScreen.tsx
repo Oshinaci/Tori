@@ -249,7 +249,7 @@ export function RecoveryPhraseScreen() {
             className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/30 text-brand focus:ring-brand accent-purple-600 disabled:cursor-not-allowed"
           />
           <span className="text-xs font-medium text-muted-foreground leading-snug">
-            I have written down or backed up my 12-word recovery phrase in a safe offline location.
+            <strong>"I have written it down"</strong> — I confirm that I have stored my 12-word recovery phrase in a safe offline location.
           </span>
         </label>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { AuthLayout } from "./AuthLayout";
 import { AuthLoading } from "./AuthLoading";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Sparkles, ShieldCheck } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -19,6 +19,7 @@ export function RecoveryPhraseVerificationScreen() {
   const [input2, setInput2] = useState("");
   const [input3, setInput3] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -89,8 +90,9 @@ export function RecoveryPhraseVerificationScreen() {
       // Clear session storage
       sessionStorage.removeItem(`tori_mnemonic_${userId}`);
 
-      toast.success("Recovery phrase verified! Welcome to Tori.");
-      navigate({ to: "/app" });
+      toast.success("Recovery phrase verified successfully!");
+      setIsSuccess(true);
+      setVerifying(false);
     } else {
       setVerifying(false);
       toast.error("Recovery phrase does not match. Please try again.");
@@ -103,6 +105,61 @@ export function RecoveryPhraseVerificationScreen() {
 
   if (verifying) {
     return <AuthLoading message="Verifying Recovery Phrase..." />;
+  }
+
+  if (isSuccess) {
+    return (
+      <AuthLayout
+        title="Wallet Successfully Created!"
+        subtitle="Your non-custodial HD wallet is fully generated, backed up, and ready."
+      >
+        <div className="flex flex-col items-center text-center space-y-6 py-4">
+          {/* Glowing Verification Success Badge */}
+          <div className="relative">
+            <div className="absolute inset-0 rounded-full bg-emerald-500/20 blur-xl animate-pulse" />
+            <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-500/20 text-emerald-400 p-0.5 shadow-premium">
+              <ShieldCheck className="h-10 w-10 text-emerald-400" />
+              <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-amber-400 animate-bounce" />
+            </div>
+          </div>
+
+          <div className="space-y-2 max-w-sm">
+            <h3 className="text-sm font-bold text-white">Wallet Setup Completed</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              You are now in full control of your private keys. Remember, Tori never stores your master recovery phrase, keeping your assets completely safe and secure.
+            </p>
+          </div>
+
+          {/* Wallet Security Overview Panel */}
+          <div className="w-full space-y-2.5 rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-left text-xs">
+            <div className="flex justify-between items-center border-b border-white/5 pb-2">
+              <span className="text-muted-foreground font-medium">Wallet Type</span>
+              <span className="text-white font-semibold">BIP39 HD Wallet (12 Words)</span>
+            </div>
+            <div className="flex justify-between items-center border-b border-white/5 pb-2">
+              <span className="text-muted-foreground font-medium">Encryption Standard</span>
+              <span className="text-white font-semibold">AES-256-GCM Secure Key</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground font-medium">Custody Status</span>
+              <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
+                Self-Custodial
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/app" })}
+            className="gradient-brand flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-xs font-bold text-white shadow-premium shadow-glow transition-all hover:opacity-95 mt-2"
+          >
+            <span>Go to Home Dashboard</span>
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      </AuthLayout>
+    );
   }
 
   const canSubmit = input1.trim() && input2.trim() && input3.trim();

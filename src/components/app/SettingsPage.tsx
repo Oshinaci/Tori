@@ -151,34 +151,6 @@ export function SettingsPage() {
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </li>
 
-            {/* Reveal Recovery Phrase */}
-            <li
-              onClick={() => {
-                handleTriggerSensitiveAction(
-                  t("revealRecoveryPhrase", "Reveal Recovery Phrase"),
-                  "Enter your 6-digit PIN to view your 12-word secret recovery phrase.",
-                  t("revealRecoveryPhrase", "Reveal Recovery Phrase"),
-                  () => {
-                    toast.info(
-                      "Secret Phrase: alpha beta gamma delta echo foxtrot golf hotel india juliet kilo lima",
-                      {
-                        duration: 8000,
-                      },
-                    );
-                  },
-                );
-              }}
-              className="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-white/5 transition-colors"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5 text-amber-400">
-                <Eye className="h-4 w-4" />
-              </span>
-              <span className="flex-1 truncate text-sm font-medium">
-                {t("revealRecoveryPhrase", "Reveal Recovery Phrase")}
-              </span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </li>
-
             {/* Export Private Key */}
             <li
               onClick={() => {

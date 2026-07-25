@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
 export function LoginScreen() {
-  const { signIn } = useAuth();
+  const { signIn, checkEmailExists } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -24,6 +24,15 @@ export function LoginScreen() {
 
     setLoading(true);
     setErrorMessage(null);
+
+    const exists = await checkEmailExists(email);
+    if (!exists) {
+      setLoading(false);
+      toast.error("Account not found.", {
+        description: "This email has not been registered. Please create an account first.",
+      });
+      return;
+    }
 
     const res = await signIn(email.trim(), password);
 

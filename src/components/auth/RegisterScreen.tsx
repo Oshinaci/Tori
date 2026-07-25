@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
 export function RegisterScreen() {
-  const { signUp } = useAuth();
+  const { signUp, checkEmailExists } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -30,6 +30,15 @@ export function RegisterScreen() {
 
     setLoading(true);
     setErrorMessage(null);
+
+    const exists = await checkEmailExists(email);
+    if (exists) {
+      setLoading(false);
+      toast.error("Email already registered.", {
+        description: "Please sign in or use another email.",
+      });
+      return;
+    }
 
     const res = await signUp(email.trim(), password);
 
