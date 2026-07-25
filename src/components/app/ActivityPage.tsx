@@ -1,14 +1,25 @@
 import { useState } from "react";
 import { TopBar } from "./TopBar";
 import { TxList } from "./TxList";
+import { useLanguage } from "@/context/LanguageContext";
 
 const FILTERS = ["All", "Sent", "Received", "Swaps", "Buys"] as const;
 
+const FILTER_KEYS: Record<(typeof FILTERS)[number], string> = {
+  All: "all",
+  Sent: "sent",
+  Received: "received",
+  Swaps: "swapped",
+  Buys: "bought",
+};
+
 export function ActivityPage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
+  const { t } = useLanguage();
+
   return (
     <>
-      <TopBar title="Activity" />
+      <TopBar title={t("activity", "Activity")} />
       <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
         {FILTERS.map((f) => (
           <button
@@ -21,7 +32,7 @@ export function ActivityPage() {
                 : "glass text-muted-foreground hover:text-foreground"
             }`}
           >
-            {f}
+            {t(FILTER_KEYS[f], f)}
           </button>
         ))}
       </div>

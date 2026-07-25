@@ -103,7 +103,9 @@ export function SettingsPage() {
                 <Lock className="h-4 w-4" />
               </span>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-foreground">Security PIN</div>
+                <div className="text-sm font-medium text-foreground">
+                  {t("securityPin", "Security PIN")}
+                </div>
                 <div className="text-[11px] text-emerald-400 font-medium">
                   {hasPin ? "6-Digit Encrypted PIN Active" : "No PIN set"}
                 </div>
@@ -112,9 +114,9 @@ export function SettingsPage() {
                 type="button"
                 onClick={() => {
                   handleTriggerSensitiveAction(
-                    "Change Security PIN",
+                    t("changePin", "Change PIN"),
                     "Enter your current 6-digit PIN to set a new security PIN.",
-                    "Change PIN",
+                    t("changePin", "Change PIN"),
                     () => {
                       navigate({ to: "/auth/create-pin" });
                     },
@@ -122,7 +124,7 @@ export function SettingsPage() {
                 }}
                 className="rounded-xl bg-white/10 px-2.5 py-1 text-xs font-semibold text-foreground hover:bg-white/15 transition-colors"
               >
-                Change PIN
+                {t("changePin", "Change PIN")}
               </button>
             </li>
 
@@ -130,9 +132,9 @@ export function SettingsPage() {
             <li
               onClick={() => {
                 handleTriggerSensitiveAction(
-                  "Change Account Password",
+                  t("changePassword", "Change Password"),
                   "Enter your 6-digit PIN to authorize password reset.",
-                  "Change Password",
+                  t("changePassword", "Change Password"),
                   () => {
                     toast.success("PIN authorized! Redirection to password update.");
                   },
@@ -143,7 +145,9 @@ export function SettingsPage() {
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5 text-foreground">
                 <KeyRound className="h-4 w-4" />
               </span>
-              <span className="flex-1 truncate text-sm font-medium">Change Password</span>
+              <span className="flex-1 truncate text-sm font-medium">
+                {t("changePassword", "Change Password")}
+              </span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </li>
 
@@ -151,9 +155,9 @@ export function SettingsPage() {
             <li
               onClick={() => {
                 handleTriggerSensitiveAction(
-                  "Reveal Recovery Phrase",
+                  t("revealRecoveryPhrase", "Reveal Recovery Phrase"),
                   "Enter your 6-digit PIN to view your 12-word secret recovery phrase.",
-                  "Reveal Secret Phrase",
+                  t("revealRecoveryPhrase", "Reveal Recovery Phrase"),
                   () => {
                     toast.info(
                       "Secret Phrase: alpha beta gamma delta echo foxtrot golf hotel india juliet kilo lima",
@@ -169,7 +173,9 @@ export function SettingsPage() {
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5 text-amber-400">
                 <Eye className="h-4 w-4" />
               </span>
-              <span className="flex-1 truncate text-sm font-medium">Reveal Recovery Phrase</span>
+              <span className="flex-1 truncate text-sm font-medium">
+                {t("revealRecoveryPhrase", "Reveal Recovery Phrase")}
+              </span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </li>
 
@@ -177,9 +183,9 @@ export function SettingsPage() {
             <li
               onClick={() => {
                 handleTriggerSensitiveAction(
-                  "Export Private Key",
+                  t("exportPrivateKey", "Export Private Key"),
                   "Enter your 6-digit PIN to export your private key.",
-                  "Export Private Key",
+                  t("exportPrivateKey", "Export Private Key"),
                   () => {
                     toast.info("Private Key: 0x8aef72910c...3b09f1 (Copied securely)", {
                       duration: 5000,
@@ -192,7 +198,9 @@ export function SettingsPage() {
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5 text-purple-400">
                 <Key className="h-4 w-4" />
               </span>
-              <span className="flex-1 truncate text-sm font-medium">Export Private Key</span>
+              <span className="flex-1 truncate text-sm font-medium">
+                {t("exportPrivateKey", "Export Private Key")}
+              </span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </li>
 
@@ -200,9 +208,9 @@ export function SettingsPage() {
             <li
               onClick={() => {
                 handleTriggerSensitiveAction(
-                  "Delete Wallet & Data",
+                  t("deleteWallet", "Delete Wallet"),
                   "Enter your 6-digit PIN to confirm permanent wallet deletion.",
-                  "Delete Wallet",
+                  t("deleteWallet", "Delete Wallet"),
                   async () => {
                     toast.error("Wallet data purged.");
                     await signOut();
@@ -215,7 +223,9 @@ export function SettingsPage() {
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-red-500/10 text-red-400">
                 <Trash2 className="h-4 w-4" />
               </span>
-              <span className="flex-1 truncate text-sm font-medium">Delete Wallet</span>
+              <span className="flex-1 truncate text-sm font-medium">
+                {t("deleteWallet", "Delete Wallet")}
+              </span>
               <ChevronRight className="h-4 w-4 text-red-400/50" />
             </li>
           </ul>

@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Bird, ArrowRight, Shield, Zap, Sparkles } from "lucide-react";
+import { Bird, ArrowRight, Shield, Zap, Sparkles, Globe, Check } from "lucide-react";
 import { motion } from "framer-motion";
-import { useLanguage } from "@/context/LanguageContext";
+import { useLanguage, LANGUAGES, LanguageCode } from "@/context/LanguageContext";
+import { toast } from "sonner";
 
 export function WelcomeScreen() {
-  const { t, language } = useLanguage();
+  const { t, language, setLanguageCode } = useLanguage();
+  const [isLangOpen, setIsLangOpen] = useState(false);
 
   return (
     <div className="relative flex min-h-screen w-full flex-col justify-between overflow-x-hidden bg-background p-5 text-foreground max-w-md mx-auto">
@@ -20,10 +23,14 @@ export function WelcomeScreen() {
           </span>
           <span className="text-xl font-extrabold tracking-tight text-white">Tori</span>
         </div>
-        <span className="glass rounded-full px-3 py-1 text-xs font-semibold text-muted-foreground flex items-center gap-1">
+        <button
+          onClick={() => setIsLangOpen(true)}
+          className="glass rounded-full px-3 py-1.5 text-xs font-semibold text-foreground flex items-center gap-1.5 hover:bg-white/10 transition-colors border border-white/10 cursor-pointer"
+        >
+          <Globe className="h-3.5 w-3.5 text-brand" />
           <span>{language.flag}</span>
           <span>{language.name}</span>
-        </span>
+        </button>
       </div>
 
       {/* Hero Content */}
@@ -80,6 +87,58 @@ export function WelcomeScreen() {
           <span>{t("login", "Log In")}</span>
         </Link>
       </div>
+
+      {/* Language Modal Dialog */}
+      {isLangOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="glass w-full max-w-sm rounded-3xl border border-white/10 p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <Globe className="h-5 w-5 text-brand" />
+                <h3 className="text-base font-bold text-white">
+                  {t("selectLanguage", "Select Language")}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsLangOpen(false)}
+                className="text-xs text-muted-foreground hover:text-white px-2 py-1 rounded-lg hover:bg-white/10"
+              >
+                {t("close", "Close")}
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {LANGUAGES.map((item) => {
+                const isSelected = item.code === language.code;
+                return (
+                  <button
+                    key={item.code}
+                    onClick={() => {
+                      setLanguageCode(item.code as LanguageCode);
+                      setIsLangOpen(false);
+                      toast.success(`Language set to ${item.nativeName}`);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-2xl p-3.5 text-xs font-semibold transition-all border ${
+                      isSelected
+                        ? "border-brand/50 bg-brand/15 text-white"
+                        : "border-white/5 bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-lg">{item.flag}</span>
+                      <div className="text-left">
+                        <div className="font-bold text-white">{item.nativeName}</div>
+                        <div className="text-[10px] text-muted-foreground">{item.name}</div>
+                      </div>
+                    </div>
+                    {isSelected && <Check className="h-4 w-4 text-brand" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

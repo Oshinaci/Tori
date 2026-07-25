@@ -4,10 +4,12 @@ import { Bird, Check, Copy, QrCode, ShieldCheck } from "lucide-react";
 import { TopBar } from "./TopBar";
 import { NETWORKS, shortAddr } from "./data";
 import { useWallet } from "@/context/WalletContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
 
 export function WalletPage() {
   const { walletAddress, walletName, loading } = useWallet();
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
 
   const addressToDisplay = walletAddress || "0x0000000000000000000000000000000000000000";
@@ -17,7 +19,7 @@ export function WalletPage() {
     try {
       await navigator.clipboard.writeText(walletAddress);
       setCopied(true);
-      toast.success("Wallet address copied");
+      toast.success(t("copied", "Wallet address copied"));
       setTimeout(() => setCopied(false), 1500);
     } catch {
       /* ignore */
@@ -26,7 +28,7 @@ export function WalletPage() {
 
   return (
     <>
-      <TopBar title="Wallet" />
+      <TopBar title={t("wallet", "Wallet")} />
 
       <motion.section
         initial={{ opacity: 0, y: 10 }}
@@ -53,7 +55,7 @@ export function WalletPage() {
               <Bird className="h-4 w-4" strokeWidth={2.2} />
             </span>
             <span className="truncate font-mono text-sm">
-              {loading ? "Loading..." : shortAddr(addressToDisplay)}
+              {loading ? t("comingSoon", "Loading...") : shortAddr(addressToDisplay)}
             </span>
           </div>
           <button
@@ -63,12 +65,12 @@ export function WalletPage() {
             className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium hover:bg-white/25 disabled:opacity-50"
           >
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            {copied ? "Copied" : "Copy"}
+            {copied ? t("copied", "Copied") : t("copy", "Copy")}
           </button>
         </div>
       </motion.section>
 
-      <h2 className="mt-8 text-base font-semibold">Networks</h2>
+      <h2 className="mt-8 text-base font-semibold">{t("networks", "Networks")}</h2>
       <ul className="glass mt-3 grid grid-cols-2 gap-2 rounded-3xl p-2">
         {NETWORKS.map((n) => (
           <li

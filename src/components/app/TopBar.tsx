@@ -3,10 +3,12 @@ import { Bell, Bird, Check, Copy } from "lucide-react";
 import { shortAddr } from "./data";
 import { NotificationsSheet } from "./NotificationsSheet";
 import { useWallet } from "@/context/WalletContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
 
 export function TopBar({ title }: { title?: string }) {
   const { walletAddress, network, loading } = useWallet();
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
@@ -15,7 +17,7 @@ export function TopBar({ title }: { title?: string }) {
     try {
       await navigator.clipboard.writeText(walletAddress);
       setCopied(true);
-      toast.success("Address copied to clipboard");
+      toast.success(t("copied", "Address copied to clipboard"));
       setTimeout(() => setCopied(false), 1500);
     } catch {
       /* ignore */

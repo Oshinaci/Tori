@@ -2,12 +2,14 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, Layers, ArrowUpDown } from "lucide-react";
 import { MARKET_ITEMS, MarketItem, fmtUsd } from "./data";
+import { useLanguage } from "@/context/LanguageContext";
 
 const CATEGORIES = ["All", "DeFi", "Layer 1", "Meme", "AI"] as const;
 
 export function MarketOverview() {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [sortBy, setSortBy] = useState<"rank" | "change">("rank");
+  const { t } = useLanguage();
 
   let filtered = MARKET_ITEMS.filter((item) =>
     selectedCategory === "All" ? true : item.category === selectedCategory,
@@ -46,7 +48,7 @@ export function MarketOverview() {
           className="glass shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
         >
           <ArrowUpDown className="h-3 w-3" />
-          {sortBy === "rank" ? "By Rank" : "Top Gainers"}
+          {sortBy === "rank" ? t("byRank", "By Rank") : t("topGainers", "Top Gainers")}
         </button>
       </div>
 
@@ -54,8 +56,8 @@ export function MarketOverview() {
       <div className="glass rounded-3xl overflow-hidden divide-y divide-white/5">
         <div className="grid grid-cols-12 px-4 py-2 text-[10px] uppercase font-semibold text-muted-foreground tracking-wider bg-white/5">
           <span className="col-span-1">#</span>
-          <span className="col-span-6">Asset</span>
-          <span className="col-span-5 text-right">Price / 24h</span>
+          <span className="col-span-6">{t("assets", "Asset")}</span>
+          <span className="col-span-5 text-right">{t("price", "Price")} / 24h</span>
         </div>
 
         {filtered.map((m, index) => {

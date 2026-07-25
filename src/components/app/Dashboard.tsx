@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useWallet } from "@/context/WalletContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { shortAddr, fmtUsd } from "./data";
 import { NotificationsSheet } from "./NotificationsSheet";
 import { toast } from "sonner";
@@ -26,6 +27,7 @@ import { toast } from "sonner";
 export function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const {
     walletAddress,
     walletName,
@@ -241,14 +243,11 @@ export function Dashboard() {
         </div>
 
         <div className="relative mt-3 text-white">
-          <div className="text-xs font-medium text-white/70 mb-1">Portfolio Value</div>
+          <div className="text-xs font-medium text-white/70 mb-1">
+            {t("totalBalance", "Portfolio Value")}
+          </div>
           <div className="text-3xl font-bold tracking-tight sm:text-4xl">
             {hidden ? "••••••" : fmtUsd(portfolioValue)}
-          </div>
-          <div className="mt-1 flex items-center gap-2 text-xs text-white/70">
-            <span>{network.name}</span>
-            <span>•</span>
-            <span>Last synced: {formatLastSynced(lastSyncedAt)}</span>
           </div>
         </div>
       </motion.section>
@@ -263,7 +262,7 @@ export function Dashboard() {
           <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/5 border border-white/10 transition-all hover:bg-white/10 active:scale-95 text-white">
             <ArrowDown className="h-5 w-5" />
           </div>
-          <span className="text-xs font-medium text-white">Receive</span>
+          <span className="text-xs font-medium text-white">{t("receive", "Receive")}</span>
         </button>
         <button
           type="button"
@@ -277,7 +276,7 @@ export function Dashboard() {
             </div>
           </div>
           <span className="text-xs font-medium text-muted-foreground group-hover:text-white transition-colors">
-            Send
+            {t("send", "Send")}
           </span>
         </button>
         <button
@@ -292,7 +291,7 @@ export function Dashboard() {
             </div>
           </div>
           <span className="text-xs font-medium text-muted-foreground group-hover:text-white transition-colors">
-            Swap
+            {t("swap", "Swap")}
           </span>
         </button>
         <button
@@ -307,7 +306,7 @@ export function Dashboard() {
             </div>
           </div>
           <span className="text-xs font-medium text-muted-foreground group-hover:text-white transition-colors">
-            Buy
+            {t("buyCrypto", "Buy")}
           </span>
         </button>
       </section>
@@ -315,7 +314,7 @@ export function Dashboard() {
       {/* Assets Section */}
       <section className="mt-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold text-white">Assets</h2>
+          <h2 className="text-base font-bold text-white">{t("assets", "Assets")}</h2>
           <button
             disabled
             className="flex items-center gap-1 text-xs font-semibold text-muted-foreground/50 cursor-not-allowed"
@@ -367,15 +366,19 @@ export function Dashboard() {
       {/* Recent Activity */}
       <section className="mt-8 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold text-white">Recent Activity</h2>
+          <h2 className="text-base font-bold text-white">
+            {t("recentActivity", "Recent Activity")}
+          </h2>
           <button className="flex items-center gap-1 text-xs font-semibold text-brand hover:text-brand/80 transition-colors">
-            View All
+            {t("seeAll", "View All")}
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
 
         <div className="flex flex-col items-center justify-center py-8 rounded-3xl border border-white/5 bg-white/[0.02]">
-          <p className="text-sm font-medium text-muted-foreground">No transactions yet.</p>
+          <p className="text-sm font-medium text-muted-foreground">
+            {t("noTransactions", "No transactions yet.")}
+          </p>
         </div>
       </section>
 

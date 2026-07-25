@@ -3,33 +3,59 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Home, PieChart, Repeat, Settings, LineChart } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface NavItem {
   to: string;
-  label: string;
+  labelKey: string;
+  defaultLabel: string;
   icon: ElementType;
   exact: boolean;
   isTrade: boolean;
   badge?: string;
 }
 
-const NAV: NavItem[] = [
-  { to: "/app", label: "Home", icon: Home, exact: true, isTrade: false },
-  { to: "/app/portfolio", label: "Portfolio", icon: PieChart, exact: false, isTrade: false },
-  { to: "/app", label: "Trade", icon: Repeat, exact: false, isTrade: true, badge: "soon" },
-  {
-    to: "/app/market",
-    label: "Market",
-    icon: LineChart,
-    exact: false,
-    isTrade: false,
-    badge: "COMING SOON",
-  },
-  { to: "/app/settings", label: "Settings", icon: Settings, exact: false, isTrade: false },
-];
-
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { t } = useLanguage();
+
+  const NAV: NavItem[] = [
+    { to: "/app", labelKey: "home", defaultLabel: "Home", icon: Home, exact: true, isTrade: false },
+    {
+      to: "/app/portfolio",
+      labelKey: "portfolio",
+      defaultLabel: "Portfolio",
+      icon: PieChart,
+      exact: false,
+      isTrade: false,
+    },
+    {
+      to: "/app",
+      labelKey: "tradeSoon",
+      defaultLabel: "Trade",
+      icon: Repeat,
+      exact: false,
+      isTrade: true,
+      badge: "soon",
+    },
+    {
+      to: "/app/market",
+      labelKey: "market",
+      defaultLabel: "Market",
+      icon: LineChart,
+      exact: false,
+      isTrade: false,
+      badge: t("comingSoon", "SOON"),
+    },
+    {
+      to: "/app/settings",
+      labelKey: "settings",
+      defaultLabel: "Settings",
+      icon: Settings,
+      exact: false,
+      isTrade: false,
+    },
+  ];
 
   const handleTradeClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -65,7 +91,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             if (item.isTrade) {
               return (
                 <button
-                  key={item.label}
+                  key={item.labelKey}
                   type="button"
                   onClick={handleTradeClick}
                   className="relative flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors group"
@@ -75,7 +101,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   </span>
                   <div className="relative z-10 flex items-center gap-1">
                     <span className="text-muted-foreground group-hover:text-foreground">
-                      {item.label}
+                      {t(item.labelKey, item.defaultLabel)}
                     </span>
                     <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[8px] font-extrabold text-white shadow-sm uppercase tracking-wider leading-none">
                       {item.badge}
@@ -111,7 +137,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                       active ? "text-white" : "text-muted-foreground"
                     }`}
                   >
-                    {item.label}
+                    {t(item.labelKey, item.defaultLabel)}
                   </span>
                   {item.badge && (
                     <span

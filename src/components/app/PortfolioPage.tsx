@@ -4,10 +4,12 @@ import { TopBar } from "./TopBar";
 import { AssetList } from "./AssetList";
 import { portfolioService, PortfolioSummary } from "@/lib/portfolio";
 import { useWallet } from "@/context/WalletContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { Eye, EyeOff } from "lucide-react";
 
 export function PortfolioPage() {
   const { walletAddress, loading: walletLoading } = useWallet();
+  const { t } = useLanguage();
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -66,7 +68,7 @@ export function PortfolioPage() {
   return (
     <div className="flex h-full flex-col pb-20">
       <div className="px-4">
-        <TopBar title="Portfolio" />
+        <TopBar title={t("portfolio", "Portfolio")} />
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-4">
@@ -81,7 +83,7 @@ export function PortfolioPage() {
         >
           <div className="flex items-center justify-between">
             <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-              Total Portfolio
+              {t("totalPortfolio", "Total Portfolio")}
             </p>
             <button
               type="button"
@@ -106,7 +108,7 @@ export function PortfolioPage() {
           </div>
 
           <div className="mt-2 flex items-center gap-2">
-            <p className="text-xs text-muted-foreground">Today's Change</p>
+            <p className="text-xs text-muted-foreground">{t("todaysChange", "Today's Change")}</p>
             {!loading && !hidden && (
               <p
                 className={`text-xs font-semibold ${positive ? "text-emerald-400" : "text-red-400"}`}
@@ -147,7 +149,7 @@ export function PortfolioPage() {
           )}
         </motion.section>
 
-        <h2 className="mt-8 text-base font-bold text-white px-1">All Assets</h2>
+        <h2 className="mt-8 text-base font-bold text-white px-1">{t("assets", "All Assets")}</h2>
         {loading ? (
           <div className="flex justify-center p-8">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand border-t-transparent" />
