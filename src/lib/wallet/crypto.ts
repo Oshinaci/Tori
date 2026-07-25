@@ -6,9 +6,26 @@ import { Wallet, isAddress } from "ethers";
 async function deriveSecureKey(userId: string): Promise<CryptoKey> {
   const encoder = new TextEncoder();
   const salt = encoder.encode(`tori_vault_salt_${userId.toLowerCase()}`);
+
+  // Retrieve the hashed PIN to derive the key from the user's PIN as requested
+  let pinHash = "";
+  if (typeof window !== "undefined") {
+    try {
+      const storedHashes = JSON.parse(localStorage.getItem("tori_hashed_pins") || "{}");
+      pinHash = storedHashes[userId] || "";
+    } catch (e) {
+      console.error("Failed to read PIN hash from localStorage:", e);
+    }
+  }
+
+  // Derive key source using the user's PIN (pinHash) if available, falling back to userId key if not set yet
+  const keySource = pinHash
+    ? `tori_pin_vault_key_${userId.toLowerCase()}_${pinHash}`
+    : `tori_secret_vault_key_${userId}`;
+
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
-    encoder.encode(`tori_secret_vault_key_${userId}`),
+    encoder.encode(keySource),
     "PBKDF2",
     false,
     ["deriveKey"],

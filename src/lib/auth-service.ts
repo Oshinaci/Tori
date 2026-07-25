@@ -30,21 +30,46 @@ export const authService = {
    */
   async checkEmailExists(email: string): Promise<boolean> {
     const cleanEmail = email.trim().toLowerCase();
+
+    // Always check localStorage for demo users and registered emails cache
+    if (typeof window !== "undefined") {
+      const demoUsers = JSON.parse(localStorage.getItem("tori_demo_users") || "{}");
+      if (demoUsers[cleanEmail] || cleanEmail === "demo@tori.wallet") {
+        return true;
+      }
+
+      const registeredEmails = JSON.parse(localStorage.getItem("tori_registered_emails") || "[]");
+      if (registeredEmails.includes(cleanEmail)) {
+        return true;
+      }
+    }
+
     if (isSupabaseConfigured) {
-      // In Supabase, you can't check email existence directly without a secure RPC.
-      // But we can attempt signInWithOtp or rely on signin errors.
-      // For this mockup, we'll return false and let the regular signin/signup handle it,
-      // or assume we only use demo storage for existence validation.
-      return false;
-    } else {
-      if (typeof window !== "undefined") {
-        const users = JSON.parse(localStorage.getItem("tori_demo_users") || "{}");
-        if (users[cleanEmail] || cleanEmail === "demo@tori.wallet") {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("email", cleanEmail);
+
+        if (data && data.length > 0) {
+          // If found in public profiles, add to local cache for next time
+          if (typeof window !== "undefined") {
+            const registeredEmails = JSON.parse(
+              localStorage.getItem("tori_registered_emails") || "[]",
+            );
+            if (!registeredEmails.includes(cleanEmail)) {
+              registeredEmails.push(cleanEmail);
+              localStorage.setItem("tori_registered_emails", JSON.stringify(registeredEmails));
+            }
+          }
           return true;
         }
+      } catch (e) {
+        console.error("Error checking email in Supabase:", e);
       }
-      return false;
     }
+
+    return false;
   },
 
   /**
@@ -96,6 +121,15 @@ export const authService = {
 
       if (error) {
         return { data: null, error: error.message };
+      }
+
+      // Add to local registered emails cache
+      if (typeof window !== "undefined") {
+        const registeredEmails = JSON.parse(localStorage.getItem("tori_registered_emails") || "[]");
+        if (!registeredEmails.includes(cleanEmail)) {
+          registeredEmails.push(cleanEmail);
+          localStorage.setItem("tori_registered_emails", JSON.stringify(registeredEmails));
+        }
       }
 
       return {
@@ -169,6 +203,15 @@ export const authService = {
       }
 
       const hasPin = pinService.hasPin(data.user.id);
+
+      // Add to local registered emails cache
+      if (typeof window !== "undefined") {
+        const registeredEmails = JSON.parse(localStorage.getItem("tori_registered_emails") || "[]");
+        if (!registeredEmails.includes(cleanEmail)) {
+          registeredEmails.push(cleanEmail);
+          localStorage.setItem("tori_registered_emails", JSON.stringify(registeredEmails));
+        }
+      }
 
       return {
         data: {

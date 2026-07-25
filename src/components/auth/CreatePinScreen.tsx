@@ -120,8 +120,10 @@ export function CreatePinScreen({ onSuccess }: CreatePinScreenProps) {
         } catch (err) {
           console.error("Wallet initialization error:", err);
           setLoading(false);
-          setErrorMsg("Failed to initialize wallet foundation.");
-          toast.error("Failed to initialize wallet foundation.");
+          setErrorMsg("Wallet creation failed");
+          toast.error("Wallet creation failed", {
+            description: "Please check your network and try again.",
+          });
         }
       };
 

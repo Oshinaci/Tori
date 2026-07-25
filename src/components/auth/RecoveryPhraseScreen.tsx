@@ -37,6 +37,15 @@ export function RecoveryPhraseScreen() {
     let isMounted = true;
     async function loadPhrase() {
       const userId = user?.id || "guest_user";
+
+      // Prevent returning to onboarding if already completed
+      if (typeof window !== "undefined") {
+        if (localStorage.getItem(`tori_onboarding_completed_${userId}`) === "true") {
+          navigate({ to: "/app" });
+          return;
+        }
+      }
+
       const phrase = await walletService.getMnemonic(userId);
       if (isMounted) {
         setMnemonic(phrase);
@@ -48,7 +57,7 @@ export function RecoveryPhraseScreen() {
       isMounted = false;
       setMnemonic(null); // Clear sensitive state on unmount
     };
-  }, [user]);
+  }, [user, navigate]);
 
   const handlePointerDown = () => {
     setHoldProgress(0);
@@ -249,7 +258,8 @@ export function RecoveryPhraseScreen() {
             className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/30 text-brand focus:ring-brand accent-purple-600 disabled:cursor-not-allowed"
           />
           <span className="text-xs font-medium text-muted-foreground leading-snug">
-            <strong>"I have written it down"</strong> — I confirm that I have stored my 12-word recovery phrase in a safe offline location.
+            <strong>"I have written it down"</strong> — I confirm that I have stored my 12-word
+            recovery phrase in a safe offline location.
           </span>
         </label>
 

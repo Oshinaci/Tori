@@ -7,6 +7,7 @@ export interface WalletRecord {
   encrypted_private_key: string;
   encrypted_mnemonic?: string;
   wallet_version: string;
+  is_default?: boolean;
   created_at?: string;
   updated_at?: string;
 }

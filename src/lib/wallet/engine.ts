@@ -73,6 +73,7 @@ export class WalletEngine {
       encrypted_private_key: encryptedPrivateKey,
       encrypted_mnemonic: encryptedMnemonic,
       wallet_version: "v1.0",
+      is_default: true,
       created_at: now,
       updated_at: now,
     };

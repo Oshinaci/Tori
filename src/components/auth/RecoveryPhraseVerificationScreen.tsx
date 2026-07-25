@@ -27,6 +27,15 @@ export function RecoveryPhraseVerificationScreen() {
 
     async function loadAndPrepare() {
       const userId = user?.id || "guest_user";
+
+      // Prevent returning to onboarding if already completed
+      if (typeof window !== "undefined") {
+        if (localStorage.getItem(`tori_onboarding_completed_${userId}`) === "true") {
+          navigate({ to: "/app" });
+          return;
+        }
+      }
+
       mnemonicLocal = await walletService.getMnemonic(userId);
 
       if (isMounted && mnemonicLocal) {
@@ -87,6 +96,11 @@ export function RecoveryPhraseVerificationScreen() {
         "Recovery phrase verified successfully",
       );
 
+      // Persist onboarding completed flag to prevent returning here
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`tori_onboarding_completed_${userId}`, "true");
+      }
+
       // Clear session storage
       sessionStorage.removeItem(`tori_mnemonic_${userId}`);
 
@@ -126,7 +140,8 @@ export function RecoveryPhraseVerificationScreen() {
           <div className="space-y-2 max-w-sm">
             <h3 className="text-sm font-bold text-white">Wallet Setup Completed</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              You are now in full control of your private keys. Remember, Tori never stores your master recovery phrase, keeping your assets completely safe and secure.
+              You are now in full control of your private keys. Remember, Tori never stores your
+              master recovery phrase, keeping your assets completely safe and secure.
             </p>
           </div>
 

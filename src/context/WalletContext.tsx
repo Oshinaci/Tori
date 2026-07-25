@@ -29,8 +29,8 @@ interface WalletContextType {
   isRefetching: boolean;
   refetchBalance: () => Promise<void>;
   portfolioValue: number;
+  isInitialized: boolean;
 }
-
 
 const ARBITRUM_NETWORK: NetworkInfo = {
   id: ARBITRUM_ONE.id,
@@ -50,7 +50,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   // Blockchain Live Data
-  const [ethBalance, setEthBalance] = useState<string | null>(null);
+  const [ethBalance, setEthBalance] = useState<string | null>("0");
   const [ethBalanceWei, setEthBalanceWei] = useState<string | null>(null);
   const [portfolioValue, setPortfolioValue] = useState<number>(0);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
@@ -89,7 +89,6 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-
   // Initial wallet load
   useEffect(() => {
     let isMounted = true;
@@ -112,7 +111,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         if (isMounted) {
           setWalletAddress(null);
           setWalletName(null);
-          setEthBalance(null);
+          setEthBalance("0");
           setEthBalanceWei(null);
           setLastSyncedAt(null);
           setRpcStatus("connecting");
@@ -171,6 +170,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         isRefetching,
         refetchBalance,
         portfolioValue,
+        isInitialized: !!walletAddress,
       }}
     >
       {children}
