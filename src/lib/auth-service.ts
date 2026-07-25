@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from "./supabase";
-import { passkeyService, PasskeyCredential } from "./passkey-service";
+import { pinService } from "./pin-service";
 import type { Session, User } from "@supabase/supabase-js";
 
 export type AuthResponse<T = unknown> = {
@@ -15,7 +15,7 @@ export interface DemoUser {
   email_confirmed_at: string | null;
   user_metadata?: {
     full_name?: string;
-    has_passkey?: boolean;
+    has_pin?: boolean;
   };
 }
 
@@ -58,12 +58,12 @@ export const authService = {
 
   /**
    * Sign up with Email and Password
-   * Immediately signs user in so they can register a Passkey.
+   * Calls Supabase Auth signUp(). Supabase sends standard Email Verification Link.
    */
   async signUp(
     email: string,
     password: string,
-  ): Promise<AuthResponse<{ user: User | DemoUser; session: Session | DemoSession }>> {
+  ): Promise<AuthResponse<{ user: User | DemoUser | null; requiresEmailVerification: boolean }>> {
     const cleanEmail = email.trim().toLowerCase();
 
     if (isSupabaseConfigured) {
@@ -76,35 +76,13 @@ export const authService = {
         return { data: null, error: error.message };
       }
 
-      if (data.session && data.user) {
-        return { data: { user: data.user, session: data.session }, error: null };
-      }
-
-      // If Supabase required auto login attempt
-      const signInRes = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password,
-      });
-
-      if (signInRes.data.user && signInRes.data.session) {
-        return {
-          data: { user: signInRes.data.user, session: signInRes.data.session },
-          error: null,
-        };
-      }
-
-      // Fallback user object if session pending confirmation
-      const tempUser: DemoUser = {
-        id: data.user?.id || `user_${Date.now()}`,
-        email: cleanEmail,
-        email_confirmed_at: new Date().toISOString(),
+      return {
+        data: {
+          user: data.user,
+          requiresEmailVerification: true,
+        },
+        error: null,
       };
-      const tempSession: DemoSession = {
-        user: tempUser,
-        access_token: `token_${Date.now()}`,
-      };
-
-      return { data: { user: tempUser, session: tempSession }, error: null };
     } else {
       // Demo mode sign up
       if (typeof window !== "undefined") {
@@ -126,13 +104,13 @@ export const authService = {
         };
         localStorage.setItem("tori_demo_users", JSON.stringify(users));
 
-        const demoSession: DemoSession = {
-          user: newUser,
-          access_token: `demo_token_${Date.now()}`,
+        return {
+          data: {
+            user: newUser,
+            requiresEmailVerification: true,
+          },
+          error: null,
         };
-        localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(demoSession));
-
-        return { data: { user: newUser, session: demoSession }, error: null };
       }
 
       return { data: null, error: "Local storage unavailable." };
@@ -140,81 +118,7 @@ export const authService = {
   },
 
   /**
-   * Register a WebAuthn Passkey for current user
-   */
-  async registerPasskey(user: { id: string; email: string }): Promise<{
-    credential: PasskeyCredential | null;
-    error: string | null;
-  }> {
-    return passkeyService.registerPasskey(user);
-  },
-
-  /**
-   * Sign In with Passkey (Primary WebAuthn Method)
-   */
-  async signInWithPasskey(
-    email?: string,
-  ): Promise<AuthResponse<{ user: User | DemoUser; session: Session | DemoSession }>> {
-    const authResult = await passkeyService.authenticatePasskey(email);
-
-    if (!authResult.success || !authResult.passkey) {
-      return {
-        data: null,
-        error: authResult.error || "Passkey verification failed. Please try again.",
-      };
-    }
-
-    const passkey = authResult.passkey;
-
-    if (isSupabaseConfigured) {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData.session?.user) {
-        return {
-          data: { user: sessionData.session.user, session: sessionData.session },
-          error: null,
-        };
-      }
-
-      // Restore session or active user for passkey owner
-      const passkeyUser: DemoUser = {
-        id: passkey.userId,
-        email: passkey.email,
-        email_confirmed_at: new Date().toISOString(),
-        user_metadata: { has_passkey: true },
-      };
-      const passkeySession: DemoSession = {
-        user: passkeyUser,
-        access_token: `passkey_jwt_${Date.now()}`,
-      };
-
-      if (typeof window !== "undefined") {
-        localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(passkeySession));
-      }
-
-      return { data: { user: passkeyUser, session: passkeySession }, error: null };
-    } else {
-      // Demo session from passkey
-      const demoUser: DemoUser = {
-        id: passkey.userId,
-        email: passkey.email,
-        email_confirmed_at: new Date().toISOString(),
-        user_metadata: { has_passkey: true },
-      };
-      const demoSession: DemoSession = {
-        user: demoUser,
-        access_token: `passkey_jwt_${Date.now()}`,
-      };
-
-      if (typeof window !== "undefined") {
-        localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(demoSession));
-      }
-
-      return { data: { user: demoUser, session: demoSession }, error: null };
-    }
-  },
-
-  /**
-   * Fallback Sign In with Email & Password (Recovery Flow)
+   * Sign In with Email & Password
    */
   async signIn(
     email: string,
@@ -223,7 +127,7 @@ export const authService = {
     AuthResponse<{
       user: User | DemoUser;
       session: Session | DemoSession;
-      promptPasskey?: boolean;
+      hasPin: boolean;
     }>
   > {
     const cleanEmail = email.trim().toLowerCase();
@@ -242,13 +146,13 @@ export const authService = {
         return { data: null, error: "Invalid login credentials." };
       }
 
-      const hasPasskey = passkeyService.hasRegisteredPasskeys(cleanEmail);
+      const hasPin = pinService.hasPin(data.user.id);
 
       return {
         data: {
           user: data.user,
           session: data.session,
-          promptPasskey: !hasPasskey,
+          hasPin,
         },
         error: null,
       };
@@ -273,9 +177,9 @@ export const authService = {
         if (typeof window !== "undefined") {
           localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(demoSession));
         }
-        const hasPasskey = passkeyService.hasRegisteredPasskeys(cleanEmail);
+        const hasPin = pinService.hasPin(demoUser.id);
         return {
-          data: { user: demoUser, session: demoSession, promptPasskey: !hasPasskey },
+          data: { user: demoUser, session: demoSession, hasPin },
           error: null,
         };
       }
@@ -302,10 +206,10 @@ export const authService = {
         localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(demoSession));
       }
 
-      const hasPasskey = passkeyService.hasRegisteredPasskeys(cleanEmail);
+      const hasPin = pinService.hasPin(demoUser.id);
 
       return {
-        data: { user: demoUser, session: demoSession, promptPasskey: !hasPasskey },
+        data: { user: demoUser, session: demoSession, hasPin },
         error: null,
       };
     }

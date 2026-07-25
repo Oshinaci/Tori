@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { authService, AuthResponse, DemoSession, DemoUser } from "@/lib/auth-service";
-import { passkeyService, PasskeyCredential } from "@/lib/passkey-service";
+import { pinService, PinVerifyResult } from "@/lib/pin-service";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import type { Session, User } from "@supabase/supabase-js";
 
@@ -9,13 +9,12 @@ export interface AuthContextType {
   session: Session | DemoSession | null;
   loading: boolean;
   isConfigured: boolean;
+  isPinUnlocked: boolean;
+  hasPin: boolean;
   signUp: (
     email: string,
     password: string,
-  ) => Promise<AuthResponse<{ user: User | DemoUser; session: Session | DemoSession }>>;
-  signInWithPasskey: (
-    email?: string,
-  ) => Promise<AuthResponse<{ user: User | DemoUser; session: Session | DemoSession }>>;
+  ) => Promise<AuthResponse<{ user: User | DemoUser | null; requiresEmailVerification: boolean }>>;
   signIn: (
     email: string,
     password: string,
@@ -23,14 +22,12 @@ export interface AuthContextType {
     AuthResponse<{
       user: User | DemoUser;
       session: Session | DemoSession;
-      promptPasskey?: boolean;
+      hasPin: boolean;
     }>
   >;
-  registerPasskey: (userOverride?: { id: string; email: string }) => Promise<{
-    credential: PasskeyCredential | null;
-    error: string | null;
-  }>;
-  hasPasskeyRegistered: (emailOrUserId?: string) => boolean;
+  createPin: (pin: string) => Promise<{ success: boolean; error?: string }>;
+  verifyPin: (pin: string) => Promise<PinVerifyResult>;
+  lockPin: () => void;
   forgotPassword: (email: string) => Promise<AuthResponse<{ sent: boolean }>>;
   resetPassword: (
     newPassword: string,
@@ -46,20 +43,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | DemoUser | null>(null);
   const [session, setSession] = useState<Session | DemoSession | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPinUnlocked, setIsPinUnlocked] = useState(false);
+  const [hasPin, setHasPin] = useState(false);
 
-  const refreshSession = async () => {
+  const checkPinState = useCallback((activeUser: User | DemoUser | null) => {
+    if (!activeUser) {
+      setHasPin(false);
+      setIsPinUnlocked(false);
+      return;
+    }
+    const userHasPin = pinService.hasPin(activeUser.id);
+    const pinUnlocked = pinService.isPinUnlocked(activeUser.id);
+    setHasPin(userHasPin);
+    setIsPinUnlocked(pinUnlocked);
+  }, []);
+
+  const refreshSession = useCallback(async () => {
     try {
       const { user: u, session: s } = await authService.getSession();
       setUser(u);
       setSession(s);
+      checkPinState(u);
     } catch (err) {
       console.error("Failed to refresh session:", err);
       setUser(null);
       setSession(null);
+      setHasPin(false);
+      setIsPinUnlocked(false);
     } finally {
       setLoading(false);
     }
-  };
+  }, [checkPinState]);
 
   useEffect(() => {
     refreshSession();
@@ -67,7 +81,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isSupabaseConfigured) {
       const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
         setSession(newSession);
-        setUser(newSession?.user ?? null);
+        const newUser = newSession?.user ?? null;
+        setUser(newUser);
+        checkPinState(newUser);
         setLoading(false);
       });
 
@@ -75,33 +91,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         listener.subscription.unsubscribe();
       };
     }
-  }, []);
+  }, [checkPinState, refreshSession]);
 
-  const handleRegisterPasskey = async (userOverride?: { id: string; email: string }) => {
-    const targetUser = userOverride || user;
-    if (!targetUser) {
-      return { credential: null, error: "No active user session to attach Passkey." };
-    }
-    const res = await passkeyService.registerPasskey({
-      id: targetUser.id,
-      email: targetUser.email || "",
-    });
-    if (res.credential) {
-      await refreshSession();
+  const handleCreatePin = async (pin: string) => {
+    if (!user) return { success: false, error: "No active user session." };
+    const res = await pinService.createPin(user.id, pin);
+    if (res.success) {
+      setHasPin(true);
+      setIsPinUnlocked(true);
     }
     return res;
   };
 
-  const handleHasPasskeyRegistered = (emailOrUserId?: string) => {
-    const checkId = emailOrUserId || user?.id || user?.email;
-    return passkeyService.hasRegisteredPasskeys(checkId);
+  const handleVerifyPin = async (pin: string) => {
+    if (!user) return { success: false, error: "No active user session." };
+    const res = await pinService.verifyPin(user.id, pin);
+    if (res.success) {
+      setIsPinUnlocked(true);
+    }
+    return res;
+  };
+
+  const handleLockPin = () => {
+    if (user) {
+      pinService.lockPinSession(user.id);
+    }
+    setIsPinUnlocked(false);
   };
 
   const handleSignOut = async () => {
     setLoading(true);
+    if (user) {
+      pinService.lockPinSession(user.id);
+    }
     await authService.signOut();
     setUser(null);
     setSession(null);
+    setHasPin(false);
+    setIsPinUnlocked(false);
     setLoading(false);
   };
 
@@ -112,11 +139,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         loading,
         isConfigured: isSupabaseConfigured,
+        isPinUnlocked,
+        hasPin,
         signUp: authService.signUp,
-        signInWithPasskey: authService.signInWithPasskey,
         signIn: authService.signIn,
-        registerPasskey: handleRegisterPasskey,
-        hasPasskeyRegistered: handleHasPasskeyRegistered,
+        createPin: handleCreatePin,
+        verifyPin: handleVerifyPin,
+        lockPin: handleLockPin,
         forgotPassword: authService.forgotPassword,
         resetPassword: authService.resetPassword,
         signOut: handleSignOut,

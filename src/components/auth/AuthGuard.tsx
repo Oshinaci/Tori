@@ -1,7 +1,9 @@
 import { ReactNode, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/context/AuthContext";
 import { AuthLoading } from "./AuthLoading";
+import { CreatePinScreen } from "./CreatePinScreen";
+import { EnterPinScreen } from "./EnterPinScreen";
 
 export interface AuthGuardProps {
   children: ReactNode;
@@ -9,7 +11,7 @@ export interface AuthGuardProps {
 }
 
 export function AuthGuard({ children, redirectTo = "/auth/login" }: AuthGuardProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, hasPin, isPinUnlocked, refreshSession } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,11 +21,20 @@ export function AuthGuard({ children, redirectTo = "/auth/login" }: AuthGuardPro
   }, [user, loading, navigate, redirectTo]);
 
   if (loading) {
-    return <AuthLoading message="Validating authentication..." />;
+    return <AuthLoading message="Authenticating session..." />;
   }
 
   if (!user) {
     return <AuthLoading message="Redirecting to login..." />;
+  }
+
+  // Active session exists: Check PIN state
+  if (!hasPin) {
+    return <CreatePinScreen onSuccess={() => refreshSession()} />;
+  }
+
+  if (!isPinUnlocked) {
+    return <EnterPinScreen onSuccess={() => refreshSession()} />;
   }
 
   return <>{children}</>;

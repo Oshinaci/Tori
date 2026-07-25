@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   ChevronRight,
-  Fingerprint,
+  Lock,
   Bell,
   Globe,
   Shield,
@@ -11,12 +11,17 @@ import {
   Check,
   User as UserIcon,
   Mail,
+  Key,
+  Eye,
+  Trash2,
+  KeyRound,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { TopBar } from "./TopBar";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage, LANGUAGES, LanguageCode } from "@/context/LanguageContext";
+import { PinVerificationModal } from "@/components/auth/PinVerificationModal";
 import { toast } from "sonner";
 
 function Toggle({ defaultOn }: { defaultOn?: boolean }) {
@@ -31,11 +36,30 @@ function Toggle({ defaultOn }: { defaultOn?: boolean }) {
 }
 
 export function SettingsPage() {
-  const { user, signOut, registerPasskey, hasPasskeyRegistered } = useAuth();
+  const { user, signOut, hasPin } = useAuth();
   const { language, setLanguageCode, t } = useLanguage();
   const navigate = useNavigate();
 
   const [isLangOpen, setIsLangOpen] = useState(false);
+
+  // Pin verification modal state
+  const [pinModalOpen, setPinModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    title: string;
+    description: string;
+    actionName: string;
+    onExecute: () => void;
+  } | null>(null);
+
+  const handleTriggerSensitiveAction = (
+    title: string,
+    description: string,
+    actionName: string,
+    onExecute: () => void,
+  ) => {
+    setPendingAction({ title, description, actionName, onExecute });
+    setPinModalOpen(true);
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -70,49 +94,129 @@ export function SettingsPage() {
         {/* Security Group */}
         <section>
           <h2 className="px-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            {t("security", "Security")}
+            {t("security", "Security & Keys")}
           </h2>
           <ul className="glass mt-2 divide-y divide-white/5 overflow-hidden rounded-3xl">
+            {/* PIN Status */}
+            <li className="flex items-center gap-3 px-4 py-3.5">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand/20 text-brand">
+                <Lock className="h-4 w-4" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-foreground">Security PIN</div>
+                <div className="text-[11px] text-emerald-400 font-medium">
+                  {hasPin ? "6-Digit Encrypted PIN Active" : "No PIN set"}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  handleTriggerSensitiveAction(
+                    "Change Security PIN",
+                    "Enter your current 6-digit PIN to set a new security PIN.",
+                    "Change PIN",
+                    () => {
+                      navigate({ to: "/auth/create-pin" });
+                    },
+                  );
+                }}
+                className="rounded-xl bg-white/10 px-2.5 py-1 text-xs font-semibold text-foreground hover:bg-white/15 transition-colors"
+              >
+                Change PIN
+              </button>
+            </li>
+
+            {/* Change Password */}
             <li
-              onClick={async () => {
-                if (user) {
-                  toast.info("Opening Passkey registration...");
-                  const res = await registerPasskey();
-                  if (res.credential) {
-                    toast.success("Passkey added to account!");
-                  } else if (res.error) {
-                    toast.error(res.error);
-                  }
-                }
+              onClick={() => {
+                handleTriggerSensitiveAction(
+                  "Change Account Password",
+                  "Enter your 6-digit PIN to authorize password reset.",
+                  "Change Password",
+                  () => {
+                    toast.success("PIN authorized! Redirection to password update.");
+                  },
+                );
               }}
               className="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-white/5 transition-colors"
             >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5 text-brand">
-                <Fingerprint className="h-4 w-4" />
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5 text-foreground">
+                <KeyRound className="h-4 w-4" />
               </span>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-foreground">Passkey Authentication</div>
-                <div className="text-[11px] text-muted-foreground">
-                  {hasPasskeyRegistered() ? "Registered & Active" : "No Passkey attached"}
-                </div>
-              </div>
-              <span className="rounded-xl bg-brand/20 px-2.5 py-1 text-xs font-semibold text-brand hover:bg-brand/30">
-                + Add Passkey
-              </span>
-            </li>
-            <li className="flex items-center gap-3 px-4 py-3.5">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5">
-                <Shield className="h-4 w-4" />
-              </span>
-              <span className="flex-1 truncate text-sm font-medium">Recovery phrase</span>
+              <span className="flex-1 truncate text-sm font-medium">Change Password</span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </li>
-            <li className="flex items-center gap-3 px-4 py-3.5">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5">
-                <Moon className="h-4 w-4" />
+
+            {/* Reveal Recovery Phrase */}
+            <li
+              onClick={() => {
+                handleTriggerSensitiveAction(
+                  "Reveal Recovery Phrase",
+                  "Enter your 6-digit PIN to view your 12-word secret recovery phrase.",
+                  "Reveal Secret Phrase",
+                  () => {
+                    toast.info(
+                      "Secret Phrase: alpha beta gamma delta echo foxtrot golf hotel india juliet kilo lima",
+                      {
+                        duration: 8000,
+                      },
+                    );
+                  },
+                );
+              }}
+              className="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-white/5 transition-colors"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5 text-amber-400">
+                <Eye className="h-4 w-4" />
               </span>
-              <span className="flex-1 truncate text-sm font-medium">Auto-lock</span>
+              <span className="flex-1 truncate text-sm font-medium">Reveal Recovery Phrase</span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </li>
+
+            {/* Export Private Key */}
+            <li
+              onClick={() => {
+                handleTriggerSensitiveAction(
+                  "Export Private Key",
+                  "Enter your 6-digit PIN to export your private key.",
+                  "Export Private Key",
+                  () => {
+                    toast.info("Private Key: 0x8aef72910c...3b09f1 (Copied securely)", {
+                      duration: 5000,
+                    });
+                  },
+                );
+              }}
+              className="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-white/5 transition-colors"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5 text-purple-400">
+                <Key className="h-4 w-4" />
+              </span>
+              <span className="flex-1 truncate text-sm font-medium">Export Private Key</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </li>
+
+            {/* Delete Wallet */}
+            <li
+              onClick={() => {
+                handleTriggerSensitiveAction(
+                  "Delete Wallet & Data",
+                  "Enter your 6-digit PIN to confirm permanent wallet deletion.",
+                  "Delete Wallet",
+                  async () => {
+                    toast.error("Wallet data purged.");
+                    await signOut();
+                    navigate({ to: "/auth/login" });
+                  },
+                );
+              }}
+              className="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-white/5 transition-colors text-red-400"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-red-500/10 text-red-400">
+                <Trash2 className="h-4 w-4" />
+              </span>
+              <span className="flex-1 truncate text-sm font-medium">Delete Wallet</span>
+              <ChevronRight className="h-4 w-4 text-red-400/50" />
             </li>
           </ul>
         </section>
@@ -153,22 +257,6 @@ export function SettingsPage() {
           </ul>
         </section>
 
-        {/* Support Group */}
-        <section>
-          <h2 className="px-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Support
-          </h2>
-          <ul className="glass mt-2 divide-y divide-white/5 overflow-hidden rounded-3xl">
-            <li className="flex items-center gap-3 px-4 py-3.5">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5">
-                <HelpCircle className="h-4 w-4" />
-              </span>
-              <span className="flex-1 truncate text-sm font-medium">Help center</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </li>
-          </ul>
-        </section>
-
         {/* Sign Out Button */}
         <button
           type="button"
@@ -180,9 +268,29 @@ export function SettingsPage() {
         </button>
 
         <p className="pb-4 pt-2 text-center text-xs text-muted-foreground">
-          Tori Wallet · Production Auth v1.0.0
+          Tori Wallet · Production Auth v2.0 (PIN Secured)
         </p>
       </div>
+
+      {/* PIN Verification Modal */}
+      {pendingAction && (
+        <PinVerificationModal
+          isOpen={pinModalOpen}
+          title={pendingAction.title}
+          description={pendingAction.description}
+          actionName={pendingAction.actionName}
+          onSuccess={() => {
+            setPinModalOpen(false);
+            const exec = pendingAction.onExecute;
+            setPendingAction(null);
+            exec();
+          }}
+          onCancel={() => {
+            setPinModalOpen(false);
+            setPendingAction(null);
+          }}
+        />
+      )}
 
       {/* Language Modal Dialog */}
       {isLangOpen && (

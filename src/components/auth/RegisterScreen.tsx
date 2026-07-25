@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Mail, Lock, CheckCircle2, XCircle, Loader2, ArrowRight } from "lucide-react";
 import { AuthLayout } from "./AuthLayout";
-import { CreatePasskeyScreen } from "./CreatePasskeyScreen";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
@@ -16,7 +15,7 @@ export function RegisterScreen() {
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [registeredUser, setRegisteredUser] = useState<{ id: string; email: string } | null>(null);
+  const [verificationSent, setVerificationSent] = useState(false);
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const hasMinLength = password.length >= 8;
@@ -42,24 +41,41 @@ export function RegisterScreen() {
       return;
     }
 
-    if (res.data?.user) {
-      toast.success("Account created! Set up your Passkey for fast secure login.");
-      setRegisteredUser({
-        id: res.data.user.id,
-        email: res.data.user.email || email.trim(),
-      });
-    }
+    setVerificationSent(true);
+    toast.success("Verification link sent to your email!");
   };
 
-  // If user just registered, show Passkey setup screen immediately
-  if (registeredUser) {
+  if (verificationSent) {
     return (
-      <CreatePasskeyScreen
-        email={registeredUser.email}
-        userId={registeredUser.id}
-        onSuccess={() => navigate({ to: "/app" })}
-        onSkip={() => navigate({ to: "/app" })}
-      />
+      <AuthLayout
+        title="Check Your Email"
+        subtitle="We sent a verification link to your email address."
+      >
+        <div className="flex flex-col items-center text-center space-y-5 py-4">
+          <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-500/20 text-emerald-400 p-0.5 shadow-premium">
+            <Mail className="h-10 w-10 animate-pulse" />
+          </div>
+
+          <div className="space-y-1.5 max-w-xs">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Click the verification link sent to{" "}
+              <strong className="text-foreground">{email}</strong> to confirm your account.
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Once verified, return and log in to set up your 6-digit security PIN.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/auth/login" })}
+            className="gradient-brand flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-xs font-bold text-white shadow-premium transition-all hover:opacity-95 mt-2"
+          >
+            <span>Proceed to Login</span>
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      </AuthLayout>
     );
   }
 
@@ -165,11 +181,11 @@ export function RegisterScreen() {
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Creating Account...</span>
+              <span>Sending Verification Email...</span>
             </>
           ) : (
             <>
-              <span>Create Account & Passkey</span>
+              <span>Create Account</span>
               <ArrowRight className="h-4 w-4" />
             </>
           )}
