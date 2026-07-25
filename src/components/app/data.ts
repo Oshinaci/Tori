@@ -356,19 +356,11 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   },
 ];
 
-export const NETWORKS = [
-  { id: "eth", name: "Ethereum", color: "#627EEA" },
-  { id: "base", name: "Base", color: "#0052FF" },
-  { id: "arb", name: "Arbitrum", color: "#28A0F0" },
-  { id: "op", name: "Optimism", color: "#FF0420" },
-  { id: "sol", name: "Solana", color: "#14F195" },
-  { id: "poly", name: "Polygon", color: "#8247E5" },
-];
+export const NETWORKS = [{ id: "arb", name: "Arbitrum One", color: "#28A0F0" }];
 
 export const totalBalance = ASSETS.reduce((s, a) => s + a.price * a.balance, 0);
 export const pnl24h = ASSETS.reduce((s, a) => s + a.price * a.balance * (a.change24h / 100), 0);
 
-export const WALLET_ADDRESS = "0x8f3aC1b2e9F4d6C7a2E1b3D4c5F6a7B8c9D0e1F2";
 export const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 export const fmtUsd = (n: number) =>

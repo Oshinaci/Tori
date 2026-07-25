@@ -1,16 +1,32 @@
-import type { ReactNode } from "react";
+import type { ReactNode, ElementType } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, PieChart, Repeat, Wallet, Settings } from "lucide-react";
+import { Home, PieChart, Repeat, Settings, LineChart } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
-const NAV = [
+interface NavItem {
+  to: string;
+  label: string;
+  icon: ElementType;
+  exact: boolean;
+  isTrade: boolean;
+  badge?: string;
+}
+
+const NAV: NavItem[] = [
   { to: "/app", label: "Home", icon: Home, exact: true, isTrade: false },
   { to: "/app/portfolio", label: "Portfolio", icon: PieChart, exact: false, isTrade: false },
   { to: "/app", label: "Trade", icon: Repeat, exact: false, isTrade: true, badge: "soon" },
-  { to: "/app/activity", label: "Activity", icon: Wallet, exact: false, isTrade: false },
+  {
+    to: "/app/market",
+    label: "Market",
+    icon: LineChart,
+    exact: false,
+    isTrade: false,
+    badge: "COMING SOON",
+  },
   { to: "/app/settings", label: "Settings", icon: Settings, exact: false, isTrade: false },
-] as const;
+];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -61,8 +77,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <span className="text-muted-foreground group-hover:text-foreground">
                       {item.label}
                     </span>
-                    <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.2 text-[9px] font-extrabold text-white shadow-sm uppercase tracking-wider leading-none">
-                      soon
+                    <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[8px] font-extrabold text-white shadow-sm uppercase tracking-wider leading-none">
+                      {item.badge}
                     </span>
                   </div>
                 </button>
@@ -89,13 +105,23 @@ export function AppShell({ children }: { children: ReactNode }) {
                 >
                   <Icon className="h-5 w-5" strokeWidth={active ? 2.4 : 2} />
                 </span>
-                <span
-                  className={`relative z-10 transition-colors ${
-                    active ? "text-white" : "text-muted-foreground"
-                  }`}
-                >
-                  {item.label}
-                </span>
+                <div className="relative z-10 flex items-center gap-1">
+                  <span
+                    className={`transition-colors ${
+                      active ? "text-white" : "text-muted-foreground"
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                  {item.badge && (
+                    <span
+                      style={{ backgroundColor: "#F59E0B" }}
+                      className="rounded-full px-1.5 py-0.5 text-[8px] font-extrabold text-white shadow-sm uppercase tracking-wider leading-none"
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
               </Link>
             );
           })}

@@ -2,6 +2,8 @@ import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { AppShell } from "@/components/app/AppShell";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
+import { WalletProvider } from "@/context/WalletContext";
+
 export const Route = createFileRoute("/app")({
   head: () => ({
     meta: [
@@ -19,9 +21,11 @@ export const Route = createFileRoute("/app")({
 function AppLayout() {
   return (
     <ProtectedRoute>
-      <AppShell>
-        <Outlet />
-      </AppShell>
+      <WalletProvider>
+        <AppShell>
+          <Outlet />
+        </AppShell>
+      </WalletProvider>
     </ProtectedRoute>
   );
 }

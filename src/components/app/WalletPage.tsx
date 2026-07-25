@@ -1,37 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Bird, Check, Copy, QrCode, ShieldCheck } from "lucide-react";
 import { TopBar } from "./TopBar";
-import { NETWORKS, WALLET_ADDRESS as DEFAULT_WALLET_ADDRESS, shortAddr } from "./data";
-import { useAuth } from "@/context/AuthContext";
-import { walletService } from "@/lib/wallet-service";
+import { NETWORKS, shortAddr } from "./data";
+import { useWallet } from "@/context/WalletContext";
+import { toast } from "sonner";
 
 export function WalletPage() {
-  const { user } = useAuth();
-  const [walletAddress, setWalletAddress] = useState<string>(DEFAULT_WALLET_ADDRESS);
-  const [walletName, setWalletName] = useState<string>("Main Wallet");
+  const { walletAddress, walletName, loading } = useWallet();
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
-    async function fetchWallet() {
-      const userId = user?.id || "guest_user";
-      const w = await walletService.getWallet(userId);
-      if (isMounted && w) {
-        setWalletAddress(w.wallet_address);
-        setWalletName(w.wallet_name || "Main Wallet");
-      }
-    }
-    fetchWallet();
-    return () => {
-      isMounted = false;
-    };
-  }, [user]);
+  const addressToDisplay = walletAddress || "0x0000000000000000000000000000000000000000";
 
   const copy = async () => {
+    if (!walletAddress) return;
     try {
       await navigator.clipboard.writeText(walletAddress);
       setCopied(true);
+      toast.success("Wallet address copied");
       setTimeout(() => setCopied(false), 1500);
     } catch {
       /* ignore */
@@ -66,12 +52,15 @@ export function WalletPage() {
             <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/20 text-white shadow-sm">
               <Bird className="h-4 w-4" strokeWidth={2.2} />
             </span>
-            <span className="truncate font-mono text-sm">{shortAddr(walletAddress)}</span>
+            <span className="truncate font-mono text-sm">
+              {loading ? "Loading..." : shortAddr(addressToDisplay)}
+            </span>
           </div>
           <button
             type="button"
             onClick={copy}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium hover:bg-white/25"
+            disabled={loading || !walletAddress}
+            className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium hover:bg-white/25 disabled:opacity-50"
           >
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             {copied ? "Copied" : "Copy"}
