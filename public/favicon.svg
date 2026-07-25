@@ -9,7 +9,7 @@
       <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#0058ff" flood-opacity="0.4"/>
     </filter>
   </defs>
-  <rect width="512" height="512" rx="112" fill="url(#brandGrad)" filter="url(#shadow)"/>
+  <rect width="512" height="512" rx="112" fill="url(#brandGrad)"/>
   <g transform="translate(106, 106) scale(12)" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
     <path d="M16 7h.01" />
     <path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20" />

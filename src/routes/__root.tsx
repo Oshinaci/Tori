@@ -95,7 +95,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "The everyday crypto wallet for everyone. Send, receive, swap, bridge and grow your assets in one beautiful, secure wallet.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:image", content: "/icon-512.png" },
+      { property: "og:image", content: "/android-chrome-512x512.png" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Tori — Crypto as Easy as GoPay" },
       {
@@ -103,7 +103,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "The everyday crypto wallet. Beautiful, secure, self-custody. Send, receive, swap, bridge and buy across chains.",
       },
-      { name: "twitter:image", content: "/icon-512.png" },
+      { name: "twitter:image", content: "/android-chrome-512x512.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
