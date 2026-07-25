@@ -154,13 +154,13 @@ export function NotificationsSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="glass w-full sm:max-w-md border-l border-white/10 p-0 text-foreground flex flex-col h-full"
+        className="glass w-full sm:max-w-md border-l border-white/10 p-0 text-foreground flex flex-col h-full [&>button]:hidden"
       >
         {/* Main Panel View */}
         <div className="flex flex-col h-full relative overflow-hidden">
           {/* Sheet Header */}
           <div className="p-5 border-b border-white/10 space-y-3">
-            <div className="flex items-center justify-between pr-6">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <span className="grid h-9 w-9 place-items-center rounded-xl gradient-brand text-white shadow-sm">
                   <Bell className="h-4 w-4" />
@@ -172,11 +172,21 @@ export function NotificationsSheet({
                   </SheetDescription>
                 </div>
               </div>
-              {unreadCount > 0 && (
-                <span className="rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-semibold">
-                  {unreadCount} new
-                </span>
-              )}
+              <div className="flex items-center gap-1.5">
+                {unreadCount > 0 && (
+                  <span className="rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold">
+                    {unreadCount}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  className="grid h-8 w-8 place-items-center rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:text-white transition-all hover:bg-white/10 active:scale-95 cursor-pointer"
+                  aria-label="Close sheet"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
             {/* Filter tabs & quick actions */}

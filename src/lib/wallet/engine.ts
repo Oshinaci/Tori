@@ -123,8 +123,16 @@ export class WalletEngine {
         isNew: true,
       };
     } catch (e) {
-      console.error("Wallet generation failed:", e);
-      throw e;
+      console.error("Wallet generation failed, rolling back:", e);
+      // Evict cache
+      delete this.currentWalletCache[userId];
+      // Rollback database writes
+      try {
+        await walletRepository.deleteWallet(userId);
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+      throw new Error("Wallet initialization failed. Please try again.");
     }
   }
 

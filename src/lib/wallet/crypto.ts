@@ -1,4 +1,4 @@
-import { Wallet, isAddress } from "ethers";
+import { Wallet, isAddress, HDNodeWallet, Mnemonic } from "ethers";
 
 /**
  * Derives a secure key using Web Crypto API and PBKDF2
@@ -94,14 +94,34 @@ export async function decryptData(userId: string, encryptedHex: string): Promise
 }
 
 /**
- * Generates a standard HD Wallet
+ * Generates a standard HD Wallet derived from a newly generated 12-word recovery phrase (BIP39)
  */
 export function generateWallet() {
-  const randomWallet = Wallet.createRandom();
+  const mnemonicObj = Mnemonic.random();
+  const phrase = mnemonicObj.phrase;
+  const path = "m/44'/60'/0'/0/0";
+  const hdNode = HDNodeWallet.fromPhrase(phrase, undefined, path);
+
   return {
-    address: randomWallet.address,
-    privateKey: randomWallet.privateKey,
-    mnemonicPhrase: randomWallet.mnemonic?.phrase || "",
+    address: hdNode.address,
+    privateKey: hdNode.privateKey,
+    publicKey: hdNode.publicKey,
+    mnemonicPhrase: phrase,
+  };
+}
+
+/**
+ * Derives a wallet from an existing recovery phrase using the path m/44'/60'/0'/0/0
+ */
+export function deriveWalletFromMnemonic(phrase: string) {
+  const path = "m/44'/60'/0'/0/0";
+  const hdNode = HDNodeWallet.fromPhrase(phrase.trim(), undefined, path);
+
+  return {
+    address: hdNode.address,
+    privateKey: hdNode.privateKey,
+    publicKey: hdNode.publicKey,
+    mnemonicPhrase: phrase.trim(),
   };
 }
 

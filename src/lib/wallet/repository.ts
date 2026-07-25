@@ -65,6 +65,31 @@ export const walletRepository = {
     }
   },
 
+  async deleteWallet(userId: string): Promise<void> {
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from("wallets").delete().eq("user_id", userId);
+        await supabase.from("wallet_settings").delete().eq("user_id", userId);
+      } catch (e) {
+        console.error("Failed to delete wallet from Supabase during rollback:", e);
+      }
+    }
+
+    if (typeof window !== "undefined") {
+      try {
+        const localWallets = JSON.parse(localStorage.getItem(LOCAL_WALLETS_KEY) || "{}");
+        delete localWallets[userId];
+        localStorage.setItem(LOCAL_WALLETS_KEY, JSON.stringify(localWallets));
+
+        const localSettings = JSON.parse(localStorage.getItem(LOCAL_SETTINGS_KEY) || "{}");
+        delete localSettings[userId];
+        localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(localSettings));
+      } catch (e) {
+        console.error("Failed to delete wallet from localStorage during rollback:", e);
+      }
+    }
+  },
+
   async saveSettings(settings: WalletSettingsRecord): Promise<void> {
     if (isSupabaseConfigured) {
       const { error } = await supabase.from("wallet_settings").insert({

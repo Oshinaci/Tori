@@ -2,12 +2,20 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useWallet } from "@/context/WalletContext";
 import { toast } from "sonner";
-import { Copy, Check, ArrowLeft, AlertTriangle } from "lucide-react";
+import { Copy, Check, ArrowLeft, AlertTriangle, RefreshCw } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 export function ReceivePage() {
   const navigate = useNavigate();
-  const { walletAddress, loading } = useWallet();
+  const {
+    walletAddress,
+    loading,
+    ethBalance,
+    rpcStatus,
+    lastSyncedAt,
+    refetchBalance,
+    isRefetching,
+  } = useWallet();
   const [copied, setCopied] = useState(false);
 
   // Robust Ethereum/Arbitrum address validation (0x followed by exactly 40 hex chars)
@@ -173,6 +181,76 @@ export function ReceivePage() {
             </span>
             <span className="text-[9px] font-bold text-emerald-400 tracking-wider uppercase">
               Supported Network
+            </span>
+          </div>
+        </div>
+
+        {/* Live Balance & Connection Status Card */}
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 shadow-premium space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground leading-none">
+                ETH Balance
+              </span>
+              <span className="text-lg font-extrabold text-white mt-2 leading-none">
+                {ethBalance
+                  ? `${parseFloat(ethBalance)
+                      .toFixed(6)
+                      .replace(/\.?0+$/, "")} ETH`
+                  : "0 ETH"}
+              </span>
+            </div>
+
+            <button
+              onClick={refetchBalance}
+              disabled={isRefetching}
+              className="flex items-center gap-1.5 rounded-xl bg-white/5 border border-white/10 px-3 py-1.5 text-[10px] font-bold text-white hover:bg-white/10 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3 w-3 ${isRefetching ? "animate-spin" : ""}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          <div className="border-t border-white/5 pt-3 flex items-center justify-between text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span
+                  className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                    rpcStatus === "connected"
+                      ? "bg-emerald-400"
+                      : rpcStatus === "connecting"
+                        ? "bg-amber-400"
+                        : "bg-red-400"
+                  }`}
+                />
+                <span
+                  className={`relative inline-flex rounded-full h-2 w-2 ${
+                    rpcStatus === "connected"
+                      ? "bg-emerald-500"
+                      : rpcStatus === "connecting"
+                        ? "bg-amber-500"
+                        : "bg-red-500"
+                  }`}
+                />
+              </span>
+              <span className="capitalize font-semibold text-white/90">
+                {rpcStatus === "connected"
+                  ? "Connected"
+                  : rpcStatus === "connecting"
+                    ? "Connecting..."
+                    : "Unavailable"}
+              </span>
+            </div>
+
+            <span className="text-[10px]">
+              Last Updated:{" "}
+              {lastSyncedAt
+                ? lastSyncedAt.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                  })
+                : "Never"}
             </span>
           </div>
         </div>
