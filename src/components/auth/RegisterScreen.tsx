@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Mail, Lock, CheckCircle2, XCircle, Loader2, ArrowRight } from "lucide-react";
 import { AuthLayout } from "./AuthLayout";
+import { CreatePasskeyScreen } from "./CreatePasskeyScreen";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
@@ -15,8 +16,8 @@ export function RegisterScreen() {
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [registeredUser, setRegisteredUser] = useState<{ id: string; email: string } | null>(null);
 
-  // Validation rules
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const hasMinLength = password.length >= 8;
   const hasNumberOrSymbol = /[0-9!@#$%^&*()]/.test(password);
@@ -41,12 +42,26 @@ export function RegisterScreen() {
       return;
     }
 
-    toast.success("Account created! Check your email for the 6-digit OTP code.");
-    navigate({
-      to: "/auth/verify-email",
-      search: { email: email.trim(), type: "signup" },
-    });
+    if (res.data?.user) {
+      toast.success("Account created! Set up your Passkey for fast secure login.");
+      setRegisteredUser({
+        id: res.data.user.id,
+        email: res.data.user.email || email.trim(),
+      });
+    }
   };
+
+  // If user just registered, show Passkey setup screen immediately
+  if (registeredUser) {
+    return (
+      <CreatePasskeyScreen
+        email={registeredUser.email}
+        userId={registeredUser.id}
+        onSuccess={() => navigate({ to: "/app" })}
+        onSkip={() => navigate({ to: "/app" })}
+      />
+    );
+  }
 
   return (
     <AuthLayout
@@ -92,7 +107,6 @@ export function RegisterScreen() {
             />
           </div>
 
-          {/* Password Requirements Checklist */}
           {password.length > 0 && (
             <div className="space-y-1 pt-1 text-[11px]">
               <div
@@ -151,11 +165,11 @@ export function RegisterScreen() {
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Sending OTP...</span>
+              <span>Creating Account...</span>
             </>
           ) : (
             <>
-              <span>Continue to Verification</span>
+              <span>Create Account & Passkey</span>
               <ArrowRight className="h-4 w-4" />
             </>
           )}

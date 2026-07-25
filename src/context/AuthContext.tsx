@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { authService, AuthResponse, DemoSession, DemoUser } from "@/lib/auth-service";
+import { passkeyService, PasskeyCredential } from "@/lib/passkey-service";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import type { Session, User } from "@supabase/supabase-js";
 
@@ -11,20 +12,25 @@ export interface AuthContextType {
   signUp: (
     email: string,
     password: string,
-  ) => Promise<AuthResponse<{ email: string; requiresOtp: boolean }>>;
-  verifyOtp: (
-    email: string,
-    token: string,
-    type?: "signup" | "recovery",
-  ) => Promise<AuthResponse<{ verified: boolean }>>;
-  resendOtp: (
-    email: string,
-    type?: "signup" | "recovery",
-  ) => Promise<AuthResponse<{ sent: boolean }>>;
+  ) => Promise<AuthResponse<{ user: User | DemoUser; session: Session | DemoSession }>>;
+  signInWithPasskey: (
+    email?: string,
+  ) => Promise<AuthResponse<{ user: User | DemoUser; session: Session | DemoSession }>>;
   signIn: (
     email: string,
     password: string,
-  ) => Promise<AuthResponse<{ user: User | DemoUser; session: Session | DemoSession }>>;
+  ) => Promise<
+    AuthResponse<{
+      user: User | DemoUser;
+      session: Session | DemoSession;
+      promptPasskey?: boolean;
+    }>
+  >;
+  registerPasskey: (userOverride?: { id: string; email: string }) => Promise<{
+    credential: PasskeyCredential | null;
+    error: string | null;
+  }>;
+  hasPasskeyRegistered: (emailOrUserId?: string) => boolean;
   forgotPassword: (email: string) => Promise<AuthResponse<{ sent: boolean }>>;
   resetPassword: (
     newPassword: string,
@@ -71,6 +77,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const handleRegisterPasskey = async (userOverride?: { id: string; email: string }) => {
+    const targetUser = userOverride || user;
+    if (!targetUser) {
+      return { credential: null, error: "No active user session to attach Passkey." };
+    }
+    const res = await passkeyService.registerPasskey({
+      id: targetUser.id,
+      email: targetUser.email || "",
+    });
+    if (res.credential) {
+      await refreshSession();
+    }
+    return res;
+  };
+
+  const handleHasPasskeyRegistered = (emailOrUserId?: string) => {
+    const checkId = emailOrUserId || user?.id || user?.email;
+    return passkeyService.hasRegisteredPasskeys(checkId);
+  };
+
   const handleSignOut = async () => {
     setLoading(true);
     await authService.signOut();
@@ -87,9 +113,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         isConfigured: isSupabaseConfigured,
         signUp: authService.signUp,
-        verifyOtp: authService.verifyOtp,
-        resendOtp: authService.resendOtp,
+        signInWithPasskey: authService.signInWithPasskey,
         signIn: authService.signIn,
+        registerPasskey: handleRegisterPasskey,
+        hasPasskeyRegistered: handleHasPasskeyRegistered,
         forgotPassword: authService.forgotPassword,
         resetPassword: authService.resetPassword,
         signOut: handleSignOut,

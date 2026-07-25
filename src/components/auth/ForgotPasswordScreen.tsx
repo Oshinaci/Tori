@@ -1,16 +1,16 @@
 import { useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { Mail, Loader2, ArrowRight, XCircle } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Mail, Loader2, ArrowRight, XCircle, CheckCircle2 } from "lucide-react";
 import { AuthLayout } from "./AuthLayout";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
 export function ForgotPasswordScreen() {
   const { forgotPassword } = useAuth();
-  const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,17 +30,39 @@ export function ForgotPasswordScreen() {
       return;
     }
 
-    toast.success("Verification code sent! Please check your email.");
-    navigate({
-      to: "/auth/verify-email",
-      search: { email: email.trim(), type: "recovery" },
-    });
+    setSubmitted(true);
+    toast.success("Password reset email sent!");
   };
+
+  if (submitted) {
+    return (
+      <AuthLayout title="Reset Email Sent">
+        <div className="flex flex-col items-center text-center space-y-4 py-4">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-500/20 text-emerald-400">
+            <CheckCircle2 className="h-6 w-6" />
+          </span>
+
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            We sent a password reset link to <strong className="text-foreground">{email}</strong>.
+            Please check your inbox and click the link to update your password.
+          </p>
+
+          <Link
+            to="/auth/login"
+            className="gradient-brand flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-xs font-bold text-white shadow-premium transition-all hover:opacity-95"
+          >
+            <span>Back to Login</span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout
       title="Reset Password"
-      subtitle="Enter your registered email address to receive a 6-digit recovery OTP."
+      subtitle="Enter your registered email address to receive a secure recovery link."
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {errorMessage && (
@@ -73,11 +95,11 @@ export function ForgotPasswordScreen() {
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Sending Code...</span>
+              <span>Sending Reset Email...</span>
             </>
           ) : (
             <>
-              <span>Send 6-Digit OTP</span>
+              <span>Send Recovery Link</span>
               <ArrowRight className="h-4 w-4" />
             </>
           )}

@@ -31,7 +31,7 @@ function Toggle({ defaultOn }: { defaultOn?: boolean }) {
 }
 
 export function SettingsPage() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, registerPasskey, hasPasskeyRegistered } = useAuth();
   const { language, setLanguageCode, t } = useLanguage();
   const navigate = useNavigate();
 
@@ -73,12 +73,32 @@ export function SettingsPage() {
             {t("security", "Security")}
           </h2>
           <ul className="glass mt-2 divide-y divide-white/5 overflow-hidden rounded-3xl">
-            <li className="flex items-center gap-3 px-4 py-3.5">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5">
+            <li
+              onClick={async () => {
+                if (user) {
+                  toast.info("Opening Passkey registration...");
+                  const res = await registerPasskey();
+                  if (res.credential) {
+                    toast.success("Passkey added to account!");
+                  } else if (res.error) {
+                    toast.error(res.error);
+                  }
+                }
+              }}
+              className="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-white/5 transition-colors"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5 text-brand">
                 <Fingerprint className="h-4 w-4" />
               </span>
-              <span className="flex-1 truncate text-sm font-medium">Biometric unlock</span>
-              <Toggle defaultOn={true} />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-foreground">Passkey Authentication</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {hasPasskeyRegistered() ? "Registered & Active" : "No Passkey attached"}
+                </div>
+              </div>
+              <span className="rounded-xl bg-brand/20 px-2.5 py-1 text-xs font-semibold text-brand hover:bg-brand/30">
+                + Add Passkey
+              </span>
             </li>
             <li className="flex items-center gap-3 px-4 py-3.5">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/5">
