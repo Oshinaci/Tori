@@ -63,13 +63,9 @@ export const authService = {
     password: string,
   ): Promise<AuthResponse<{ email: string; requiresOtp: boolean }>> {
     if (isSupabaseConfigured) {
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          emailRedirectTo: `${origin}/verify-email`,
-        },
       });
 
       if (error) {

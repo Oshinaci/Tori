@@ -9,11 +9,10 @@ import {
   AlertCircle,
   ShieldCheck,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { AuthLayout } from "./AuthLayout";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { handleSilentTokenVerification } from "@/lib/auth";
 import { AuthLoading } from "./AuthLoading";
 
 export function VerifyEmailScreen() {
@@ -29,7 +28,6 @@ export function VerifyEmailScreen() {
   const [email, setEmail] = useState(initialEmail);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
-  const [silentVerifying, setSilentVerifying] = useState(false);
   const [resending, setResending] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [isAlreadyVerified, setIsAlreadyVerified] = useState(false);
@@ -40,45 +38,6 @@ export function VerifyEmailScreen() {
   const [canResend, setCanResend] = useState(false);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  // Silent URL token/hash verification check on mount
-  useEffect(() => {
-    async function checkSilentToken() {
-      if (
-        typeof window === "undefined" ||
-        (!window.location.hash.includes("access_token") &&
-          !window.location.hash.includes("error") &&
-          !window.location.search.includes("code=") &&
-          !window.location.search.includes("token_hash="))
-      ) {
-        return;
-      }
-
-      setSilentVerifying(true);
-      const result = await handleSilentTokenVerification();
-
-      if (result.verified) {
-        setIsVerified(true);
-        toast.success("Email verified successfully.");
-        setTimeout(() => {
-          setSilentVerifying(false);
-          if (result.session || user) {
-            navigate({ to: "/app" });
-          } else {
-            navigate({ to: "/auth/login" });
-          }
-        }, 1200);
-      } else if (result.error) {
-        setSilentVerifying(false);
-        setErrorMessage("Invalid or expired verification code.");
-        toast.error("Invalid or expired verification code.");
-      } else {
-        setSilentVerifying(false);
-      }
-    }
-
-    checkSilentToken();
-  }, [navigate, user]);
 
   // Auto focus first input on mount
   useEffect(() => {
@@ -253,7 +212,7 @@ export function VerifyEmailScreen() {
     }
   };
 
-  if (silentVerifying || (isVerified && loading)) {
+  if (isVerified && loading) {
     return <AuthLoading message="Verifying authentication code..." />;
   }
 
